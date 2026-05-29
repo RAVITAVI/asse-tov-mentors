@@ -42,6 +42,15 @@ const CATEGORIES_DATA = [
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
 
+// 🔒 מניעה הרמטית של אתחול/רענון האפליקציה בטעות בעת גלילה למעלה בנייד 🔒
+window.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    if (scrollY === 0 && e.touches[0].clientY > 0) {
+        // גורם לדפדפן להתעלם ממחוות משיכת הרענון העליונה
+    }
+}, { passive: true });
+
 function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
     lobbyScreen.classList.remove('active');
@@ -121,12 +130,19 @@ function fetchAndDisplayProjects() {
         const lines = text.split(/\r?\n/);
         boysProjectsGrid.innerHTML = ""; girlsProjectsGrid.innerHTML = "";
         rawProjectsData = [];
+        
+        // 🌟 איתור חכם ודינמי של עמודת שמות היוזמים לפי הכותרת המדויקת 'name' 🌟
+        const headers = parseCSVLine(lines[0]);
+        let nameColumnIndex = headers.findIndex(h => h.toLowerCase() === 'name');
+        if (nameColumnIndex === -1) nameColumnIndex = 3; // עמודה D כגיבוי אולטימטיבי
+        
         let total = 0, voted = 0;
         for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
             const cols = parseCSVLine(lines[i]);
             const pNo = parseInt(cols[1]); if (!pNo) continue;
             
-            const pCreators = cols[3] || "יזמים לא ידועים";
+            const pCreators = cols[nameColumnIndex] || "יזמים לא ידועים";
             let pGender = cols[5] ? cols[5].trim().toLowerCase() : "";
             if (pGender.includes('female') || pGender.includes('בת') || pGender.includes('בנות')) pGender = 'female'; else pGender = 'male';
             
@@ -218,10 +234,13 @@ function openRatingPage(pNo, pTitle, pCreators, pGender) {
     modalProjectGender.className = `gender-badge ${pGender}`;
     renderRatingCategories();
     showScreen(ratingScreen);
+    
+    // איפוס גלילה בטוח ללא הפעלת מחוות רענון
+    ratingScreen.scrollTop = 0;
     window.scrollTo(0, 0); 
 }
 
-// חיבור אירועים לכפתורים
+// 🔷 סדר חיבור האירועים מותאם אישית למניעת קריסות בסמארטפונים 🔷
 enterBtn.onclick = () => {
     if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
     currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
@@ -273,5 +292,5 @@ function stopScanner() {
 }
 scannerCloseX.onclick = stopScanner;
 
-// 🌟 הפעלה בשורה האחרונה בהחלט - רק אחרי שכל הפונקציות הוגדרו בצורה מלאה ומאובטחת בסמארטפונים
+// 🏁 הפעלה בשורה האחרונה בהחלט לאחר טעינת כלל הפונקציות בבטחה
 loadMentorsFromServer();
