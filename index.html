@@ -23,6 +23,31 @@
         </div>
     </div>
 
+    <div id="lobby-screen" class="screen">
+        <div class="lobby-header">
+            <div class="welcome-msg">שופט/ת: <span id="user-display-name">---</span></div>
+            <div class="progress-container">
+                <span class="progress-text">התקדמות דירוג: <strong id="progress-count">0/0</strong></span>
+                <div class="progress-bar-bg">
+                    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lobby-content-wrapper">
+            <h2 class="page-title">לוח מיזמים מנטורים</h2>
+            <p class="page-subtitle">סרקו ברקוד בעמדה או לחצו על מיזם שכבר דורג לעדכון:</p>
+
+            <button id="scan-qr-btn" class="scan-main-btn">📷 סרוק ברקוד שולחן</button>
+
+            <div class="gender-section-title">🔷 מסלול בנים</div>
+            <div id="boys-projects-grid" class="projects-grid-container"></div>
+
+            <div class="gender-section-title pink">💖 מסלול בנות</div>
+            <div id="girls-projects-grid" class="projects-grid-container"></div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
