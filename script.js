@@ -38,8 +38,18 @@ let currentMentorVotesRow = {};
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
 
-// 📊 רשת ביטחון מקומית: שמות המנטורים לגיבוי מיידי אם האינטרנט באולם קורס 📊
-const BACKUP_MENTORS = ["רבית אביטן", "מנטור גיבוי 1", "מנטור גיבוי 2", "מנטור גיבוי 3"];
+// 📊 רשת ביטחון מקומית: רשימת המנטורים האמיתית שלכם מסונכרנת מהשיטס למקרה חירום! 📊
+const BACKUP_MENTORS = [
+    "רבית אביטן",
+    "שמואל פרומן",
+    "מיטל כהן",
+    "אייל רוזנברג",
+    "דוד לוי",
+    "ניר ברקוביץ",
+    "דפנה אשכנזי",
+    "גלעד שמר",
+    "אורית חדד"
+];
 
 const CATEGORIES_DATA = [
     { id: 1, title: "👥 מנהיגות וצוות", desc: "שיתוף פעולה בפיתוח המיזם הכולל ניהול וחלוקת תפקידים ברורה בה הסטודנט תורם את חלקו מתוך חוזקותיו." },
@@ -50,6 +60,12 @@ const CATEGORIES_DATA = [
     { id: 6, title: "🌍 אימפקט ותרומה", desc: "פוטנציאל השינוי שהמיזם יכול לייצר בעולם (חברתי/סביבתי/לימודי)." },
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
+
+window.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    if (scrollY === 0 && e.touches[0].clientY > 0) { }
+}, { passive: true });
 
 function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
@@ -79,6 +95,8 @@ function loadMentorsFromServer() {
         return;
     }
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
+    
+    mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
     
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
@@ -121,7 +139,7 @@ function fetchMentorVotesAndRenderLobby() {
         const lines = text.split(/\r?\n/);
         currentMentorVotesRow = {}; 
         for (let i = 1; i < lines.length; i++) {
-            const columns = parseCSVLine(lines[i]);
+            const columns = parseCSVLine(columns = parseCSVLine(lines[i]));
             if (columns[1] && columns[1].trim() === currentMentor.trim()) {
                 currentMentorVotesRow[parseInt(columns[2])] = true;
             }
@@ -168,6 +186,14 @@ function fetchAndDisplayProjects() {
         progressCount.innerText = `${voted}/${total}`;
         progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
     });
+}
+
+function getFeedbackText(val) {
+    if (val == 0) return "טרם דורג";
+    if (val >= 1 && val <= 3) return "טעון שיפור";
+    if (val >= 4 && val <= 6) return "בינוני / בסיסי";
+    if (val >= 7 && val <= 8) return "טוב מאוד";
+    return "מצוין ויוצא דופן";
 }
 
 function renderRatingCategories() {
