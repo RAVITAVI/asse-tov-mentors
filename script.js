@@ -119,7 +119,7 @@ function fetchAndDisplayProjects() {
             const lines = text.split(/\r?\n/);
             boysProjectsGrid.innerHTML = "";
             girlsProjectsGrid.innerHTML = "";
-            rawProjectsData = []; 
+            rawProjectsData = []; // איפוס
             
             if (lines.length < 2) return;
 
@@ -135,6 +135,7 @@ function fetchAndDisplayProjects() {
                 const projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
                 if (projectNo) {
+                    // שמירת כל הנתונים כולל מגדר בזיכרון המקומי
                     rawProjectsData.push({ no: projectNo, title: projectTitle, gender: projectGender });
 
                     totalProjectsCount++;
@@ -151,6 +152,7 @@ function fetchAndDisplayProjects() {
                         projectButton.innerHTML = `<div class="proj-number">${projectNo}</div><div class="proj-title">${projectTitle}</div><div class="proj-status-label">טרם דורג</div>`;
                     }
 
+                    // לחיצה ידנית מהלובי מעבירה ישירות את הנתונים הנכונים השמורים באותו כפתור
                     projectButton.onclick = function() {
                         openRatingModal(projectNo, projectTitle, projectGender);
                     };
@@ -215,7 +217,6 @@ for (let i = 1; i <= 7; i++) {
     };
 }
 
-// ❌ כפתור בטל (Cancel) - סוגר ומאפס מבלי לשנות דבר
 function closeRatingModal() {
     ratingModal.style.display = 'none';
     currentSelectedProjectNo = null;
@@ -224,12 +225,11 @@ function closeRatingModal() {
 modalCancelBtn.onclick = closeRatingModal;
 ratingCloseX.onclick = closeRatingModal;
 
-// 💾 כפתור שמור (Save) - אוסף את הציונים ושולח לגוגל שיטס
+// כפתור שמור
 modalSaveBtn.onclick = function() {
     const scores = [];
     let sum = 0;
 
-    // ולידציה - בודק שכל 7 הקטגוריות דורגו
     for (let i = 1; i <= 7; i++) {
         const val = parseInt(document.getElementById(`slider-${i}`).value);
         if (val === 0) {
@@ -243,12 +243,95 @@ modalSaveBtn.onclick = function() {
     modalSaveBtn.innerText = "שומר דירוג... ⏳";
     modalSaveBtn.disabled = true;
 
-    // בניית האובייקט שיישלח ל-Apps Script במכה אחת
     const voteData = {
         mentorName: currentMentor,
         projectNumber: currentSelectedProjectNo,
+        gender: currentSelectedProjectGender, // מוסיפים את המגדר לשמירה בשרת
         cat1: scores[0],
         cat2: scores[1],
         cat3: scores[2],
         cat4: scores[3],
         cat5: scores[4],
+        cat6: scores[5],
+        cat7: scores[6],
+        totalScore: sum 
+    };
+
+    fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        cache: "no-cache",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(voteData)
+    })
+    .then(() => {
+        alert(`הדירוג למיזם ${currentSelectedProjectNo} נשמר בהצלחה! 🎉`);
+        modalSaveBtn.innerText = "💾 שמור דירוג מיזם";
+        modalSaveBtn.disabled = false;
+        closeRatingModal();
+        fetchMentorVotesAndRenderLobby(); 
+    })
+    .catch(err => {
+        console.error(err);
+        alert("תקלה בתקשורת עם השרת, הנתונים לא נשמרו.");
+        modalSaveBtn.innerText = "💾 שמור דירוג מיזם";
+        modalSaveBtn.disabled = false;
+    });
+};
+
+loadMentorsFromServer();
+
+enterBtn.onclick = function() {
+    const selectedMentor = mentorDropdown.value;
+    if (selectedMentor === "") {
+        alert("אנא בחר/י את שמך מתוך הרשימה לפני ההמשך!");
+        return;
+    }
+    currentMentor = selectedMentor; 
+    userDisplayName.innerText = currentMentor; 
+    showScreen(lobbyScreen);
+    fetchMentorVotesAndRenderLobby();
+};
+
+// 📷 הפעלת מצלמת הסורק עם פתרון מוצלב והרמטי לכפל מספרים
+scanQrBtn.onclick = function() {
+    scannerModal.style.display = 'flex';
+    html5QrcodeScanner = new Html5Qrcode("qr-reader");
+    html5QrcodeScanner.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => { 
+            const rawText = decodedText.trim().toUpperCase(); 
+            
+            const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
+            
+            let scannedGender = "male";
+            if (rawText.startsWith('G')) {
+                scannedGender = "female";
+            }
+
+            stopScanner();
+            
+            // 🌟 התיקון הקריטי: מחפשים בזיכרון התאמה מושלמת גם למספר וגם למגדר במקביל! 🌟
+            const foundProj = rawProjectsData.find(p => parseInt(p.no) === scannedProjNo && p.gender === scannedGender);
+            
+            if (foundProj) {
+                openRatingModal(foundProj.no, foundProj.title, foundProj.gender);
+            } else {
+                openRatingModal(scannedProjNo, "מיזם סרוק", scannedGender);
+            }
+        },
+        (errorMessage) => { }
+    ).catch(err => {
+        console.error(err);
+        alert("לא ניתן לגשת למצלמה. ודאו שאישרתם הרשאת מצלמה בדפדפן.");
+        scannerModal.style.display = 'none';
+    });
+};
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => { scannerModal.style.display = 'none'; }).catch(err => console.error(err));
+    } else { scannerModal.style.display = 'none'; }
+}
+scannerCloseX.onclick = stopScanner;
