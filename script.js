@@ -1,5 +1,7 @@
 const loginScreen = document.getElementById('login-screen');
 const lobbyScreen = document.getElementById('lobby-screen');
+const ratingScreen = document.getElementById('rating-screen'); // מסך הדירוג המלא החדש
+
 const mentorDropdown = document.getElementById('mentor-dropdown');
 const enterBtn = document.getElementById('enterBtn');
 const userDisplayName = document.getElementById('user-display-name');
@@ -14,18 +16,16 @@ const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
-// רכיבי חלון קופץ דירוג קטגוריות
-const ratingModal = document.getElementById('rating-modal');
-const ratingCloseX = document.getElementById('rating-close-x');
+// רכיבי מסך הדירוג המלא
+const ratingBackBtn = document.getElementById('rating-back-btn');
 const modalProjectTitle = document.getElementById('modal-project-title');
 const modalProjectNo = document.getElementById('modal-project-no');
 const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
-const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
 // 🔹 קישורי המערכת המעודכנים של המנטורים
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyTj6OuSvDvgfru8VN-9SCwxmciiBZ59Y-aCZeWZLzXV1AgZvTwMdKM2jVgnIG3OSI/exec";
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
@@ -36,6 +36,7 @@ let currentSelectedProjectGender = "";
 function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
     lobbyScreen.classList.remove('active');
+    ratingScreen.classList.remove('active');
     targetScreen.classList.add('active');
 }
 
@@ -134,7 +135,6 @@ function fetchAndDisplayProjects() {
                 const projectTitle = columns[2];       
                 let projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
-                // נרמול ערכי המגדר מהטבלה כדי למנוע בעיות שפה או רווחים
                 if (projectGender.includes('female') || projectGender.includes('בת') || projectGender.includes('בנות')) {
                     projectGender = 'female';
                 } else {
@@ -159,7 +159,7 @@ function fetchAndDisplayProjects() {
                     }
 
                     projectButton.onclick = function() {
-                        openRatingModal(projectNo, projectTitle, projectGender);
+                        openRatingPage(projectNo, projectTitle, projectGender);
                     };
 
                     if (projectGender === 'female') {
@@ -177,8 +177,8 @@ function fetchAndDisplayProjects() {
         }).catch(err => console.error("שגיאה בטעינת מיזמים:", err));
 }
 
-// פונקציה לפתיחת חלון הדירוג
-function openRatingModal(projectNo, projectTitle, projectGender) {
+// 🌟 מעבר למסך הדירוג המלא החדש 🌟
+function openRatingPage(projectNo, projectTitle, projectGender) {
     currentSelectedProjectNo = projectNo;
     currentSelectedProjectGender = projectGender;
     modalProjectNo.innerText = "מיזם מספר " + projectNo;
@@ -186,26 +186,25 @@ function openRatingModal(projectNo, projectTitle, projectGender) {
 
     if (projectGender === 'female') {
         modalProjectGender.innerText = "מיזם בנות";
-        modalProjectGender.style.backgroundColor = "#fce7f3";
-        modalProjectGender.style.color = "#be185d";
+        modalProjectGender.className = "gender-badge female";
     } else {
         modalProjectGender.innerText = "מיזם בנים";
-        modalProjectGender.style.backgroundColor = "#dbeafe";
-        modalProjectGender.style.color = "#1d4ed8";
+        modalProjectGender.className = "gender-badge male";
     }
 
+    // איפוס סליידרים
     for (let i = 1; i <= 7; i++) {
         const slider = document.getElementById(`slider-${i}`);
         const preview = document.getElementById(`val-preview-${i}`);
         slider.value = 0;
         preview.innerText = "טרם דורג";
-        preview.style.color = "#94a3b8"; 
+        preview.className = "cat-card-score unrated";
     }
 
-    ratingModal.style.display = 'flex';
+    showScreen(ratingScreen); // ניווט למסך המלא
 }
 
-// חיבור אירוע עדכון חי לסליידרים
+// עדכון סליידרים בלייב במסך המלא
 for (let i = 1; i <= 7; i++) {
     const slider = document.getElementById(`slider-${i}`);
     const preview = document.getElementById(`val-preview-${i}`);
@@ -214,21 +213,20 @@ for (let i = 1; i <= 7; i++) {
         const val = parseInt(e.target.value);
         if (val === 0) {
             preview.innerText = "טרם דורג";
-            preview.style.color = "#94a3b8";
+            preview.className = "cat-card-score unrated";
         } else {
             preview.innerText = val;
-            preview.style.color = "#ff9800"; 
+            preview.className = "cat-card-score rated";
         }
     };
 }
 
-function closeRatingModal() {
-    ratingModal.style.display = 'none';
+// ➔ חזרה ללובי (מתפקד ככפתור בטל)
+ratingBackBtn.onclick = function() {
+    showScreen(lobbyScreen);
     currentSelectedProjectNo = null;
     currentSelectedProjectGender = "";
-}
-modalCancelBtn.onclick = closeRatingModal;
-ratingCloseX.onclick = closeRatingModal;
+};
 
 // כפתור שמור - שליחת הנתונים ל-Apps Script
 modalSaveBtn.onclick = function() {
@@ -271,15 +269,15 @@ modalSaveBtn.onclick = function() {
     })
     .then(() => {
         alert(`הדירוג למיזם ${currentSelectedProjectNo} נשמר בהצלחה! 🎉`);
-        modalSaveBtn.innerText = "💾 שמור דירוג מיזם";
+        modalSaveBtn.innerText = "💾 שמור דירוג והמשך";
         modalSaveBtn.disabled = false;
-        closeRatingModal();
+        showScreen(lobbyScreen);
         fetchMentorVotesAndRenderLobby(); 
     })
     .catch(err => {
         console.error(err);
         alert("תקלה בתקשורת עם השרת, הנתונים לא נשמרו.");
-        modalSaveBtn.innerText = "💾 שמור דירוג מיזם";
+        modalSaveBtn.innerText = "💾 שמור דירוג והמשך";
         modalSaveBtn.disabled = false;
     });
 };
@@ -298,7 +296,7 @@ enterBtn.onclick = function() {
     fetchMentorVotesAndRenderLobby();
 };
 
-// 📷 הפעלת מצלמת הסורק החסינה
+// הפעלת מצלמת הסורק
 scanQrBtn.onclick = function() {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
@@ -307,25 +305,19 @@ scanQrBtn.onclick = function() {
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => { 
             const rawText = decodedText.trim().toUpperCase(); 
-            
             const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
             
-            // 🔒 קביעת המגדר המוחלטת ישירות מהקוד של הברקוד (G=בנות, B=בנים)
             let scannedGender = "male";
-            if (rawText.startsWith('G')) {
-                scannedGender = "female";
-            }
+            if (rawText.startsWith('G')) { scannedGender = "female"; }
 
             stopScanner();
             
-            // חיפוש קשיח המצליב מספר ומגדר מנורמל
             const foundProj = rawProjectsData.find(p => parseInt(p.no) === scannedProjNo && p.gender === scannedGender);
             
             if (foundProj) {
-                openRatingModal(foundProj.no, foundProj.title, foundProj.gender);
+                openRatingPage(foundProj.no, foundProj.title, foundProj.gender);
             } else {
-                // מנגנון הגנה הרמטי: אם המיזם לא נמצא בטבלה, הוא נפתח עם מספר המיזם והמגדר המוחלט שנקרא מהברקוד!
-                openRatingModal(scannedProjNo, `מיזם מספר ${scannedProjNo}`, scannedGender);
+                openRatingPage(scannedProjNo, `מיזם מספר ${scannedProjNo}`, scannedGender);
             }
         },
         (errorMessage) => { }
