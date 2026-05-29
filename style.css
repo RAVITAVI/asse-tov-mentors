@@ -115,3 +115,6 @@ html, body {
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
 .modal-card.scanner-card { background: white; padding: 24px; border-radius: 24px; width: 100%; max-width: 380px; }
 .modal-close-x { position: absolute; top: 15px; left: 15px; background: #f1f5f9; border: none; font-size: 1.1rem; font-weight: bold; color: #64748b; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+
+/* 🌟 תיבת הודעות נקייה 🌟 */
+.modal-card.alert-box-card { background: white; padding: 30px 24px 20px 24px; border-radius: 28px; width: 100%; max-width: 340px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); border: 2px solid #e2e8f0; }
