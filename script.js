@@ -13,6 +13,7 @@ const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
+// 🔹 קישור הגוגל שיטס הייעודי של המנטורים
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
 
 let currentMentor = ""; 
@@ -39,6 +40,7 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
+// משיכת רשימת המנטורים
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -63,6 +65,7 @@ function loadMentorsFromServer() {
         }).catch(err => console.error("שגיאה בטעינת מנטורים:", err));
 }
 
+// משיכת הצבעות קודמות
 function fetchMentorVotesAndRenderLobby() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -91,6 +94,7 @@ function fetchMentorVotesAndRenderLobby() {
         });
 }
 
+// משיכת המיזמים וחלוקה חסינה לפי עמודה F (סנכרון מול male/female)
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -106,15 +110,6 @@ function fetchAndDisplayProjects() {
             
             if (lines.length < 2) return;
 
-            const headers = parseCSVLine(lines[0]);
-            const idxProjectNo = headers.findIndex(h => h.toLowerCase().includes('number') || h.includes('מספר') || h.includes('מיזם'));
-            const idxTitle = headers.findIndex(h => h.toLowerCase().includes('title') || h.includes('שם') || h.includes('יוזמה'));
-            const idxGender = headers.findIndex(h => h.toLowerCase().includes('gender') || h.includes('מגדר'));
-
-            const pNoId = idxProjectNo !== -1 ? idxProjectNo : 1;
-            const pTitleId = idxTitle !== -1 ? idxTitle : 2;
-            const pGenderId = idxGender !== -1 ? idxGender : 5; 
-
             let totalProjectsCount = 0;
             let votedProjectsCount = 0;
 
@@ -122,9 +117,11 @@ function fetchAndDisplayProjects() {
                 if (!lines[i].trim()) continue;
                 const columns = parseCSVLine(lines[i]);
                 
-                const projectNo = parseInt(columns[pNoId]);     
-                const projectTitle = columns[pTitleId];            
-                const projectGender = columns[pGenderId] ? columns[pGenderId].replace(/[\"\']/g, '').trim() : ""; 
+                const projectNo = parseInt(columns[1]); // עמודה B (מספר המיזם)
+                const projectTitle = columns[2];       // עמודה C (שם המיזם)
+                
+                // קריאת עמודה F (אינדקס 5) והפיכה לאותיות קטנות למניעת באגים
+                const projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
                 if (projectNo) {
                     totalProjectsCount++;
@@ -149,7 +146,8 @@ function fetchAndDisplayProjects() {
                         }
                     };
 
-                    if (projectGender.includes('בנות')) {
+                    // 🌟 התאמה מול הערכים באנגלית בגיליון שלך
+                    if (projectGender === 'female') {
                         girlsProjectsGrid.appendChild(projectButton);
                     } else {
                         boysProjectsGrid.appendChild(projectButton);
@@ -178,6 +176,7 @@ enterBtn.onclick = function() {
     fetchMentorVotesAndRenderLobby();
 };
 
+// הפעלת מצלמת הסורק
 scanQrBtn.onclick = function() {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
