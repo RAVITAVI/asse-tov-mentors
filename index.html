@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <title>מערכת מנטורים - עשה טוב</title>
+</head>
+<body>
+
+    <div id="login-screen" class="screen active">
+        <img src="campus-hemad-logo.jpg" alt="לוגו קמפוס חמד" class="logo-square">
+        <h1>מערכת שפיטה ומנטורים</h1>
+        <p class="subtitle">כנס להצגת יוזמות "עשה טוב" תשפ"ו</p>
+        
+        <div class="login-card">
+            <label for="mentor-dropdown">בחר/י את שמך מהרשימה:</label>
+            <select id="mentor-dropdown" class="mentor-select">
+                <option value="">טוען רשימת מנטורים...</option>
+            </select>
+            <button id="enterBtn" class="enter-btn">כניסה למערכת הדירוג</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
