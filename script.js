@@ -9,16 +9,26 @@ const boysProjectsGrid = document.getElementById('boys-projects-grid');
 const girlsProjectsGrid = document.getElementById('girls-projects-grid');
 const scanQrBtn = document.getElementById('scan-qr-btn');
 
+// רכיבי חלון קופץ מצלמה
 const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
-// 🔹 קישור הגוגל שיטס הייעודי של המנטורים
+// רכיבי חלון קופץ דירוג קטגוריות
+const ratingModal = document.getElementById('rating-modal');
+const ratingCloseX = document.getElementById('rating-close-x');
+const modalProjectTitle = document.getElementById('modal-project-title');
+const modalProjectNo = document.getElementById('modal-project-no');
+const modalProjectGender = document.getElementById('modal-project-gender'); // אלמנט המגדר החדש
+const modalSaveBtn = document.getElementById('modal-save-btn');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
 let currentMentorVotesRow = {}; 
+let currentSelectedProjectNo = null;
 
 function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
@@ -94,7 +104,7 @@ function fetchMentorVotesAndRenderLobby() {
         });
 }
 
-// משיכת המיזמים וחלוקה חסינה לפי עמודה F (סנכרון מול male/female)
+// משיכת המיזמים וחלוקה
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -117,13 +127,14 @@ function fetchAndDisplayProjects() {
                 if (!lines[i].trim()) continue;
                 const columns = parseCSVLine(lines[i]);
                 
-                const projectNo = parseInt(columns[1]); // עמודה B (מספר המיזם)
-                const projectTitle = columns[2];       // עמודה C (שם המיזם)
-                
-                // קריאת עמודה F (אינדקס 5) והפיכה לאותיות קטנות למניעת באגים
+                const projectNo = parseInt(columns[1]); 
+                const projectTitle = columns[2];       
                 const projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
                 if (projectNo) {
+                    // שומרים גם את המגדר המקורי (female/male) בדאטה המקומית
+                    rawProjectsData.push({ no: projectNo, title: projectTitle, gender: projectGender });
+
                     totalProjectsCount++;
                     const isVotedByMe = currentMentorVotesRow[projectNo] || false;
                     if (isVotedByMe) votedProjectsCount++;
@@ -140,13 +151,12 @@ function fetchAndDisplayProjects() {
 
                     projectButton.onclick = function() {
                         if (isVotedByMe) {
-                            alert("מיזם " + projectNo + " כבר דורג! בשלב הבא נפתח כאן את חלון עדכון הציונים.");
+                            openRatingModal(projectNo, projectTitle, projectGender);
                         } else {
                             alert("כדי לדרג את מיזם מספר " + projectNo + " בפעם הראשונה, עליכם לבקר בדוכן הפיזי שלו ולסרוק את הברקוד שעל השולחן! 📷");
                         }
                     };
 
-                    // 🌟 התאמה מול הערכים באנגלית בגיליון שלך
                     if (projectGender === 'female') {
                         girlsProjectsGrid.appendChild(projectButton);
                     } else {
@@ -161,6 +171,70 @@ function fetchAndDisplayProjects() {
 
         }).catch(err => console.error("שגיאה בטעינת מיזמים:", err));
 }
+
+// 🌟 פונקציה לפתיחת חלון הדירוג עם המגדר המעודכן
+function openRatingModal(projectNo, projectTitle, projectGender) {
+    currentSelectedProjectNo = projectNo;
+    modalProjectNo.innerText = "מיזם מספר " + projectNo;
+    modalProjectTitle.innerText = projectTitle;
+
+    // 🔷 קביעת הטקסט והצבע של תגית המגדר בחלון
+    if (projectGender === 'female') {
+        modalProjectGender.innerText = "מיזם בנות";
+        modalProjectGender.style.backgroundColor = "#fce7f3";
+        modalProjectGender.style.color = "#be185d";
+    } else {
+        modalProjectGender.innerText = "מיזם בנים";
+        modalProjectGender.style.backgroundColor = "#dbeafe";
+        modalProjectGender.style.color = "#1d4ed8";
+    }
+
+    // מחזירים את כל 7 הסליידרים למצב "טרם דורג" (0)
+    for (let i = 1; i <= 7; i++) {
+        const slider = document.getElementById(`slider-${i}`);
+        const preview = document.getElementById(`val-preview-${i}`);
+        slider.value = 0;
+        preview.innerText = "טרם דורג";
+        preview.style.color = "#94a3b8"; 
+    }
+
+    ratingModal.style.display = 'flex';
+}
+
+// חיבור אירוע עדכון חי לכל 7 הסליידרים
+for (let i = 1; i <= 7; i++) {
+    const slider = document.getElementById(`slider-${i}`);
+    const preview = document.getElementById(`val-preview-${i}`);
+    
+    slider.oninput = function(e) {
+        const val = parseInt(e.target.value);
+        if (val === 0) {
+            preview.innerText = "טרם דורג";
+            preview.style.color = "#94a3b8";
+        } else {
+            preview.innerText = val;
+            preview.style.color = "#ff9800"; 
+        }
+    };
+}
+
+function closeRatingModal() {
+    ratingModal.style.display = 'none';
+    currentSelectedProjectNo = null;
+}
+modalCancelBtn.onclick = closeRatingModal;
+ratingCloseX.onclick = closeRatingModal;
+
+modalSaveBtn.onclick = function() {
+    for (let i = 1; i <= 7; i++) {
+        const val = parseInt(document.getElementById(`slider-${i}`).value);
+        if (val === 0) {
+            alert("חובה להעניק ציון לכל 7 הקטגוריות לפני השמירה!");
+            return;
+        }
+    }
+    alert("כל הנתונים תקינים! כעת נגדיר מה כפתורי שמור ובטל עושים.");
+};
 
 loadMentorsFromServer();
 
@@ -188,7 +262,13 @@ scanQrBtn.onclick = function() {
             const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
 
             stopScanner();
-            alert("סרקת בהצלחה את מיזם מספר: " + scannedProjNo + "! בשלב הבא נפתח כאן את מסך 7 הקטגוריות.");
+            
+            const foundProj = rawProjectsData.find(p => p.no === scannedProjNo);
+            if (foundProj) {
+                openRatingModal(foundProj.no, foundProj.title, foundProj.gender);
+            } else {
+                openRatingModal(scannedProjNo, "מיזם מסורק", "male");
+            }
         },
         (errorMessage) => { }
     ).catch(err => {
