@@ -9,12 +9,10 @@ const boysProjectsGrid = document.getElementById('boys-projects-grid');
 const girlsProjectsGrid = document.getElementById('girls-projects-grid');
 const scanQrBtn = document.getElementById('scan-qr-btn');
 
-// רכיבי חלון קופץ מצלמה
 const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
-// 🔹 קישור הגוגל שיטס הייעודי של המנטורים
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
 
 let currentMentor = ""; 
@@ -41,7 +39,6 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
-// משיכת רשימת המנטורים
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -66,7 +63,6 @@ function loadMentorsFromServer() {
         }).catch(err => console.error("שגיאה בטעינת מנטורים:", err));
 }
 
-// משיכת הצבעות קודמות
 function fetchMentorVotesAndRenderLobby() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -95,7 +91,6 @@ function fetchMentorVotesAndRenderLobby() {
         });
 }
 
-// משיכת המיזמים וחלוקה חסינה למסלולים
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -107,19 +102,23 @@ function fetchAndDisplayProjects() {
             const lines = text.split(/\r?\n/);
             boysProjectsGrid.innerHTML = "";
             girlsProjectsGrid.innerHTML = "";
-            rawProjectsData = [];
             
             if (lines.length < 2) return;
 
-            // מוצאים את מיקומי העמודות לפי שורת הכותרת
+            // איתור דינמי לפי כותרות הטורים
             const headers = parseCSVLine(lines[0]);
-            const idxProjectNo = headers.findIndex(h => h.toLowerCase().includes('number') || h.includes('מספר') || h.includes('מיזם'));
-            const idxTitle = headers.findIndex(h => h.toLowerCase().includes('title') || h.includes('שם') || h.includes('יוזמה'));
-            const idxGender = headers.findIndex(h => h.toLowerCase().includes('gender') || h.includes('מגדר') || h.includes('בנים') || h.includes('בנות'));
+            
+            // נדפיס לקונסול לבדיקה עצמית
+            console.log("כותרות שנמצאו בגיליון:", headers);
 
+            const idxProjectNo = headers.findIndex(h => h.includes('Number') || h.includes('מספר') || h.includes('מיזם'));
+            const idxTitle = headers.findIndex(h => h.includes('Title') || h.includes('שם') || h.includes('יוזמה'));
+            const idxGender = headers.findIndex(h => h.includes('Gender') || h.includes('מגדר') || h.includes('בנים') || h.includes('בנות'));
+
+            // פתרון גיבוי קבוע למקרה שהכותרות שונות
             const pNoId = idxProjectNo !== -1 ? idxProjectNo : 1;
             const pTitleId = idxTitle !== -1 ? idxTitle : 2;
-            const pGenderId = idxGender !== -1 ? idxGender : 4;
+            const pGenderId = idxGender !== -1 ? idxGender : 4; 
 
             let totalProjectsCount = 0;
             let votedProjectsCount = 0;
@@ -130,7 +129,8 @@ function fetchAndDisplayProjects() {
                 
                 const projectNo = parseInt(columns[pNoId]);     
                 const projectTitle = columns[pTitleId];            
-                const projectGender = columns[pGenderId] ? columns[pGenderId].trim() : ""; 
+                // ניקוי יסודי של רווחים ותווים נסתרים מהתא
+                const projectGender = columns[pGenderId] ? columns[pGenderId].replace(/[\"\']/g, '').trim() : "ריק"; 
                 
                 if (projectNo) {
                     totalProjectsCount++;
@@ -138,14 +138,15 @@ function fetchAndDisplayProjects() {
                     if (isVotedByMe) votedProjectsCount++;
 
                     const projectButton = document.createElement('div');
+                    projectButton.className = isVotedByMe ? 'project-grid-button color-green' : 'project-grid-button color-neutral';
                     
-                    if (isVotedByMe) {
-                        projectButton.className = 'project-grid-button color-green';
-                        projectButton.innerHTML = `<div class="proj-number">${projectNo}</div><div class="proj-title">${projectTitle}</div><div class="proj-status-label">✓ דורג</div>`;
-                    } else {
-                        projectButton.className = 'project-grid-button color-neutral';
-                        projectButton.innerHTML = `<div class="proj-number">${projectNo}</div><div class="proj-title">${projectTitle}</div><div class="proj-status-label">טרם דורג</div>`;
-                    }
+                    // 🌟 הוספנו כאן תצוגת אבחון זמנית שמראה מה המערכת באמת קוראת מהעמודה של המגדר
+                    projectButton.innerHTML = `
+                        <div class="proj-number">${projectNo}</div>
+                        <div class="proj-title">${projectTitle}</div>
+                        <div style="font-size:11px; color:red; font-weight:bold; margin-top:5px;">ערך מגדר: "${projectGender}"</div>
+                        <div class="proj-status-label" style="margin-top:5px;">${isVotedByMe ? '✓ דורג' : 'טרם דורג'}</div>
+                    `;
 
                     projectButton.onclick = function() {
                         if (isVotedByMe) {
@@ -155,7 +156,7 @@ function fetchAndDisplayProjects() {
                         }
                     };
 
-                    // 🌟 בדיקה חסינת רווחים ותווים נסתרים
+                    // מיון זמני לבדיקה
                     if (projectGender.includes('בנות')) {
                         girlsProjectsGrid.appendChild(projectButton);
                     } else {
@@ -185,7 +186,6 @@ enterBtn.onclick = function() {
     fetchMentorVotesAndRenderLobby();
 };
 
-// הפעלת מצלמת הסורק
 scanQrBtn.onclick = function() {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
