@@ -61,6 +61,85 @@
         </div>
     </div>
 
+    <div id="rating-modal" class="modal-overlay">
+        <div class="modal-card rating-card">
+            <button id="rating-close-x" class="modal-close-x">✕</button>
+            
+            <div class="modal-header-popup">
+                <div style="width: 100%;">
+                    <h3 id="modal-project-title">שם המיזם יופיע כאן</h3>
+                    <div style="display: flex; gap: 10px; margin-top: 5px; align-items: center;">
+                        <span id="modal-project-no" style="font-size: 0.95rem; color: #ff9800; font-weight: bold;">מיזם מספר --</span>
+                        <span id="modal-project-gender" style="font-size: 0.8rem; font-weight: bold; padding: 2px 8px; border-radius: 8px;">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body scrollable-modal-body">
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>👥 מנהיגות וצוות</label>
+                        <span id="val-preview-1" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-1">
+                </div>
+
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>🔍 הגדרת הבעיה</label>
+                        <span id="val-preview-2" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-2">
+                </div>
+
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>🛠️ פיתוח מוצר ויישומנות</label>
+                        <span id="val-preview-3" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-3">
+                </div>
+
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>🤖 סיוע בחדשנות (AI / Code)</label>
+                        <span id="val-preview-4" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-4">
+                </div>
+
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>💡 חדשנות ומקוריות</label>
+                        <span id="val-preview-5" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-5">
+                </div>
+
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>🌍 אימפקט ותרומה לעולם</label>
+                        <span id="val-preview-6" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-6">
+                </div>
+
+                <div class="rating-range-wrapper">
+                    <div class="category-meta">
+                        <label>📊 פרזנטציה וחוויה בדוכן</label>
+                        <span id="val-preview-7" class="slider-val-display">טרם דורג</span>
+                    </div>
+                    <input type="range" min="0" max="10" value="0" class="modern-slider" id="slider-7">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="modal-save-btn" class="modal-btn btn-save">💾 שמור דירוג מיזם</button>
+                <button id="modal-cancel-btn" class="modal-btn btn-cancel">❌ ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
