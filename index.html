@@ -1,66 +1,205 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <title>מערכת שפיטה למנטורים - כנס עשה טוב</title>
-</head>
-<body>
+const loginScreen = document.getElementById('login-screen');
+const lobbyScreen = document.getElementById('lobby-screen');
+const mentorDropdown = document.getElementById('mentor-dropdown');
+const enterBtn = document.getElementById('enterBtn');
+const userDisplayName = document.getElementById('user-display-name');
+const progressCount = document.getElementById('progress-count');
+const progressBarFill = document.getElementById('progress-bar-fill');
+const boysProjectsGrid = document.getElementById('boys-projects-grid');
+const girlsProjectsGrid = document.getElementById('girls-projects-grid');
+const scanQrBtn = document.getElementById('scan-qr-btn');
 
-    <div id="login-screen" class="screen active">
-        <img src="campus-hemad-logo.jpg" alt="לוגו קמפוס חמד" class="logo-square">
-        <h1>מערכת שפיטה למנטורים</h1>
-        <p class="subtitle">כנס להצגת יוזמות "עשה טוב" תשפ"ו</p>
-        
-        <div class="login-card">
-            <label for="mentor-dropdown">בחר/י את שמך מהרשימה:</label>
-            <select id="mentor-dropdown" class="mentor-select">
-                <option value="">טוען רשימת מנטורים...</option>
-            </select>
-            <button id="enterBtn" class="enter-btn">כניסה למערכת הדירוג</button>
-        </div>
-    </div>
+// רכיבי חלון קופץ מצלמה
+const scannerModal = document.getElementById('scanner-modal');
+const scannerCloseX = document.getElementById('scanner-close-x');
+let html5QrcodeScanner = null;
 
-    <div id="lobby-screen" class="screen">
-        <div class="lobby-header">
-            <div class="welcome-msg">שופט/ת: <span id="user-display-name">---</span></div>
-            <div class="progress-container">
-                <span class="progress-text">התקדמות דירוג: <strong id="progress-count">0/0</strong></span>
-                <div class="progress-bar-bg">
-                    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
-                </div>
-            </div>
-        </div>
+// 🔹 קישור הגוגל שיטס הייעודי של המנטורים
+const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
 
-        <div class="lobby-content-wrapper">
-            <h2 class="page-title">לוח מיזמים מנטורים</h2>
-            <p class="page-subtitle">סרקו ברקוד בעמדה או לחצו על מיזם שכבר דורג לעדכון:</p>
+let currentMentor = ""; 
+let rawProjectsData = []; 
+let currentMentorVotesRow = {}; 
 
-            <button id="scan-qr-btn" class="scan-main-btn">📷 סרוק ברקוד שולחן</button>
+function showScreen(targetScreen) {
+    loginScreen.classList.remove('active');
+    lobbyScreen.classList.remove('active');
+    targetScreen.classList.add('active');
+}
 
-            <div class="gender-section-title">🔷 מסלול בנים</div>
-            <div id="boys-projects-grid" class="projects-grid-container"></div>
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') { inQuotes = !inQuotes; }
+        else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+        else { current += char; }
+    }
+    result.push(current.trim());
+    return result.map(col => col.replace(/^"|"$/g, '').trim());
+}
 
-            <div class="gender-section-title pink">💖 מסלול בנות</div>
-            <div id="girls-projects-grid" class="projects-grid-container"></div>
-        </div>
-    </div>
+// משיכת רשימת המנטורים
+function loadMentorsFromServer() {
+    const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!matches || !matches[1]) return;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
+    
+    fetch(csvUrl)
+        .then(response => response.text())
+        .then(text => {
+            const lines = text.split(/\r?\n/);
+            mentorDropdown.innerHTML = '<option value="">בחר שופט/ת...</option>';
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const columns = parseCSVLine(lines[i]);
+                const mentorName = columns[1];
+                if (mentorName) {
+                    const option = document.createElement('option');
+                    option.value = mentorName;
+                    option.innerText = mentorName;
+                    mentorDropdown.appendChild(option);
+                }
+            }
+        }).catch(err => console.error("שגיאה בטעינת מנטורים:", err));
+}
 
-    <div id="scanner-modal" class="modal-overlay">
-        <div class="modal-card scanner-card">
-            <button id="scanner-close-x" class="modal-close-x">✕</button>
-            <div class="modal-header-popup">
-                <h3>סריקת ברקוד המיזם</h3>
-            </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 15px; text-align: center; color: #475569;">כוונו את המצלמה לברקוד שעל השולחן</p>
-                <div id="qr-reader" style="width: 100%; max-width: 350px; margin: 0 auto; border-radius: 12px; overflow: hidden;"></div>
-            </div>
-        </div>
-    </div>
+// משיכת הצבעות קודמות
+function fetchMentorVotesAndRenderLobby() {
+    const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!matches || !matches[1]) return;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors_Votes`;
 
-    <script src="script.js"></script>
-</body>
-</html>
+    fetch(csvUrl)
+        .then(response => response.text())
+        .then(text => {
+            const lines = text.split(/\r?\n/);
+            currentMentorVotesRow = {}; 
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const columns = parseCSVLine(lines[i]);
+                const voteMentorName = columns[1];   
+                const voteProjectNo = parseInt(columns[2]); 
+                
+                if (voteMentorName && voteMentorName.trim() === currentMentor.trim()) {
+                    currentMentorVotesRow[voteProjectNo] = true;
+                }
+            }
+            fetchAndDisplayProjects();
+        }).catch(err => {
+            console.error("שגיאה בטעינת הצבעות מנטור:", err);
+            fetchAndDisplayProjects(); 
+        });
+}
+
+// משיכת המיזמים וחלוקה מדויקת לפי הערכים בטבלה שלך (בנים / בנות)
+function fetchAndDisplayProjects() {
+    const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!matches || !matches[1]) return;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Projects`;
+
+    fetch(csvUrl)
+        .then(response => response.text())
+        .then(text => {
+            const lines = text.split(/\r?\n/);
+            boysProjectsGrid.innerHTML = "";
+            girlsProjectsGrid.innerHTML = "";
+            rawProjectsData = [];
+            
+            let totalProjectsCount = 0;
+            let votedProjectsCount = 0;
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const columns = parseCSVLine(lines[i]);
+                
+                const projectNo = parseInt(columns[1]);     // עמודה B - Project_Number
+                const projectTitle = columns[2];            // עמודה C - Project_Title
+                const projectCreators = columns[3];          // עמודה D - Project_Creators
+                const projectGender = columns[4] ? columns[4].trim() : ""; // עמודה E - Gender ("בנים" / "בנות")
+                
+                if (projectNo) {
+                    totalProjectsCount++;
+                    const isVotedByMe = currentMentorVotesRow[projectNo] || false;
+                    if (isVotedByMe) votedProjectsCount++;
+
+                    const projectButton = document.createElement('div');
+                    
+                    if (isVotedByMe) {
+                        projectButton.className = 'project-grid-button color-green';
+                        projectButton.innerHTML = `<div class="proj-number">${projectNo}</div><div class="proj-title">${projectTitle}</div><div class="proj-status-label">✓ דורג</div>`;
+                    } else {
+                        projectButton.className = 'project-grid-button color-neutral';
+                        projectButton.innerHTML = `<div class="proj-number">${projectNo}</div><div class="proj-title">${projectTitle}</div><div class="proj-status-label">טרם דורג</div>`;
+                    }
+
+                    projectButton.onclick = function() {
+                        if (isVotedByMe) {
+                            alert("מיזם " + projectNo + " כבר דורג! בשלב הבא נפתח כאן את חלון עדכון הציונים.");
+                        } else {
+                            alert("כדי לדרג את מיזם מספר " + projectNo + " בפעם הראשונה, עליכם לבקר בדוכן הפיזי שלו ולסרוק את הברקוד שעל השולחן! 📷");
+                        }
+                    };
+
+                    // 🔷 מיון מדויק לפי הערך בעברית כפי שמופיע בגוגל שיטס שלך
+                    if (projectGender === 'בנות') {
+                        girlsProjectsGrid.appendChild(projectButton);
+                    } else {
+                        // ברירת מחדל או אם כתוב "בנים" - ייכנס למסלול בנים
+                        boysProjectsGrid.appendChild(projectButton);
+                    }
+                }
+            }
+
+            progressCount.innerText = `${votedProjectsCount}/${totalProjectsCount}`;
+            const percentage = totalProjectsCount > 0 ? (votedProjectsCount / totalProjectsCount) * 100 : 0;
+            progressBarFill.style.width = `${percentage}%`;
+
+        }).catch(err => console.error("שגיאה בטעינת מיזמים:", err));
+}
+
+loadMentorsFromServer();
+
+enterBtn.onclick = function() {
+    const selectedMentor = mentorDropdown.value;
+    if (selectedMentor === "") {
+        alert("אנא בחר/י את שמך מתוך הרשימה לפני ההמשך!");
+        return;
+    }
+    currentMentor = selectedMentor; 
+    userDisplayName.innerText = currentMentor; 
+    showScreen(lobbyScreen);
+    fetchMentorVotesAndRenderLobby();
+};
+
+// הפעלת מצלמת הסורק
+scanQrBtn.onclick = function() {
+    scannerModal.style.display = 'flex';
+    html5QrcodeScanner = new Html5Qrcode("qr-reader");
+    html5QrcodeScanner.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => { 
+            const rawText = decodedText.trim().toUpperCase();
+            const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
+
+            stopScanner();
+            alert("סרקת בהצלחה את מיזם מספר: " + scannedProjNo + "! בשלב הבא נפתח כאן את מסך 7 הקטגוריות.");
+        },
+        (errorMessage) => { }
+    ).catch(err => {
+        console.error(err);
+        alert("לא ניתן לגשת למצלמה. ודאו שאישרתם הרשאת מצלמה בדפדפן.");
+        scannerModal.style.display = 'none';
+    });
+};
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => { scannerModal.style.display = 'none'; }).catch(err => console.error(err));
+    } else { scannerModal.style.display = 'none'; }
+}
+scannerCloseX.onclick = stopScanner;
