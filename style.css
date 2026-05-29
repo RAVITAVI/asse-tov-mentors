@@ -1,89 +1,66 @@
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background-color: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; width: 100vw; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+body { background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; width: 100vw; }
 
-.screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background-color: #f8fafc; }
+.screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background-color: #f0f4f8; }
 .screen.active { display: flex; flex-direction: column; }
 
-/* מסך פתיחה */
+/* פתיחה ולובי - נשארים דומים */
 #login-screen { background: linear-gradient(135deg, #16305b 0%, #2a5298 100%); color: white; text-align: center; padding: 20px; justify-content: center; align-items: center; }
-#login-screen .logo-square { width: 150px; height: auto; border-radius: 16px; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); background-color: white; padding: 6px; }
-#login-screen h1 { font-size: 2.3rem; margin-bottom: 10px; font-weight: 700; }
-#login-screen .subtitle { font-size: 1.2rem; margin-bottom: 35px; opacity: 0.9; }
-
 .login-card { background-color: white; border-radius: 24px; padding: 35px 25px; width: 90%; max-width: 440px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); text-align: right; color: #333; }
-.login-card label { display: block; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; color: #475569; }
-.mentor-select { width: 100%; padding: 16px; font-size: 1.15rem; border: 2px solid #cbd5e1; border-radius: 14px; outline: none; background-color: #f8fafc; color: #1e293b; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>"); background-repeat: no-repeat; background-position: left 15px center; background-size: 18px; }
-.enter-btn { width: 100%; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 16px; font-size: 1.25rem; font-weight: bold; border-radius: 14px; cursor: pointer; margin-top: 25px; }
+.logo-square { width: 140px; margin-bottom: 20px; border-radius: 12px; }
+.enter-btn { width: 100%; background: #ff9800; color: white; border: none; padding: 16px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; margin-top: 20px; cursor: pointer; }
 
-/* לובי מנטורים ושורת סטטוס עליונה */
-.lobby-header { background-color: #ffffff; width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); position: fixed; top: 0; left: 0; z-index: 100; direction: rtl; }
-.welcome-msg { font-size: 1.15rem; font-weight: bold; color: #1e293b; }
-.progress-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; width: 45%; max-width: 220px; }
-.progress-text { font-size: 0.85rem; color: #64748b; font-weight: 600; }
-.progress-bar-bg { width: 100%; height: 8px; background-color: #e2e8f0; border-radius: 10px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); width: 0%; transition: width 0.4s ease; }
+/* לובי */
+.lobby-header { background: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: fixed; top: 0; width: 100%; z-index: 100; direction: rtl; }
+.progress-bar-bg { width: 100px; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: #10b981; transition: width 0.3s; }
+.lobby-content-wrapper { padding: 80px 15px 30px; overflow-y: auto; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.scan-main-btn { background: #10b981; color: white; border: none; padding: 16px; width: 100%; max-width: 500px; border-radius: 14px; font-weight: bold; margin-bottom: 20px; }
+.projects-grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; width: 100%; max-width: 600px; }
+.project-grid-button { background: white; border-radius: 14px; padding: 15px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; }
+.proj-number { font-size: 1.6rem; font-weight: 800; color: #16305b; }
+.color-green { background: #dcfce7; border: 1px solid #4ade80; }
 
-/* תוכן הלובי */
-.lobby-content-wrapper { padding: 95px 20px 30px 20px; width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; direction: rtl; }
-.page-title { font-size: 1.6rem; color: #1e3c72; margin-bottom: 5px; font-weight: bold; text-align: right; width: 100%; max-width: 600px; }
-.page-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 20px; text-align: right; width: 100%; max-width: 600px; line-height: 1.4; }
-.scan-main-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 16px; cursor: pointer; margin-bottom: 25px; width: 100%; max-width: 600px; }
+/* 💎 מסך דירוג משודרג - פריסה מלאה 💎 */
+.rating-header { background: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: fixed; top: 0; width: 100%; z-index: 100; }
+.back-arrow-btn { border: none; background: #f1f5f9; font-size: 1.2rem; width: 40px; height: 40px; border-radius: 50%; }
+.gender-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+.gender-badge.female { background: #fce7f3; color: #be185d; }
+.gender-badge.male { background: #dbeafe; color: #1d4ed8; }
 
-.gender-section-title { width: 100%; max-width: 600px; font-size: 1.25rem; font-weight: bold; color: #1d4ed8; margin-bottom: 12px; margin-top: 10px; text-align: right; border-bottom: 2px solid #dbeafe; padding-bottom: 5px; }
-.gender-section-title.pink { color: #be185d; border-color: #fce7f3; }
-.projects-grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 15px; width: 100%; max-width: 600px; padding: 5px; margin-bottom: 25px; }
-.project-grid-button { border-radius: 16px; padding: 18px 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; min-height: 125px; }
-.proj-number { font-size: 1.8rem; font-weight: 800; margin-bottom: 4px; }
-.proj-title { font-size: 0.9rem; font-weight: 600; line-height: 1.3; margin-bottom: 8px; height: 2.6rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.proj-status-label { font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; background-color: rgba(255, 255, 255, 0.4); }
-.color-neutral { background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%); color: #475569; border: 1px solid #94a3b8; }
-.color-green { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); color: #166534; border: 1px solid #4ade80; }
+.rating-body-scroll { padding: 90px 0 100px; overflow-y: auto; width: 100%; height: 100%; }
+.rating-container-inside { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 15px; }
 
-/* חלון מצלמה */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 99999; padding: 20px; }
-.modal-card { background-color: white; width: 100%; max-width: 400px; border-radius: 24px; padding: 30px 24px; text-align: right; position: relative; }
-.modal-close-x { position: absolute; top: 20px; left: 20px; background: #f1f5f9; border: none; font-size: 1.2rem; font-weight: bold; color: #64748b; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
-.modal-header-popup { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
-.modal-header-popup h3 { font-size: 1.35rem; color: #16305b; font-weight: bold; }
-#qr-reader video { border-radius: 12px; object-fit: cover; }
+/* כרטיסיית קטגוריה */
+.category-card-row { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #eef2f6; }
+.cat-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 15px; }
+.title-block { flex: 1; }
+.cat-card-title { display: block; font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
 
-/* 💎 פריסה מלאה, יוקרתית ורחבה למסך הדירוג המלא 💎 */
-#rating-screen { background-color: #f8fafc; }
+/* 1. טקסט הסבר קטן ורחב */
+.cat-card-desc { display: block; font-size: 0.85rem; color: #64748b; line-height: 1.4; width: 100%; }
 
-.rating-header { background-color: white; padding: 18px 24px; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); position: fixed; top: 0; width: 100%; z-index: 100; direction: rtl; }
-.back-arrow-btn { background: #f1f5f9; border: none; font-size: 1.4rem; font-weight: bold; color: #475569; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-.rating-title-area { display: flex; flex-direction: column; text-align: right; }
-.rating-title-area h2 { font-size: 1.45rem; color: #0f172a; font-weight: bold; }
-.rating-subtitle-row { display: flex; gap: 14px; align-items: center; margin-top: 4px; }
-#modal-project-no { font-size: 0.95rem; color: #f57c00; font-weight: bold; }
+/* 2. תיבת ציון ברוחב קשיח */
+.score-badge-wrapper { min-width: 140px; text-align: left; }
+.cat-card-feedback { font-size: 0.85rem; font-weight: 800; padding: 6px 12px; border-radius: 10px; display: inline-block; width: 100%; text-align: center; transition: all 0.2s; border: 1px solid transparent; }
+.cat-card-feedback.unrated { background: #f1f5f9; color: #94a3b8; }
+.cat-card-feedback.rated { background: #fff3e0; color: #f57c00; border-color: #ffcc80; }
 
-.gender-badge { font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 8px; }
-.gender-badge.female { background-color: #fce7f3; color: #be185d; }
-.gender-badge.male { background-color: #dbeafe; color: #1d4ed8; }
+/* 4. בקרים משולבים: סליידר, +/- והקלדה */
+.slider-control-group { margin-top: 10px; }
+.full-page-slider { width: 100%; height: 12px; border-radius: 10px; background: #e2e8f0; -webkit-appearance: none; outline: none; margin-bottom: 15px; }
+.full-page-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; background: #ff9800; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
 
-/* 🌟 הגדרת ה-width לרוחב מלא עם גבולות עדינים בצדדים 🌟 */
-.rating-body-scroll { padding-top: 100px; padding-bottom: 100px; width: 100%; height: 100%; overflow-y: auto; direction: rtl; }
-.rating-container-inside { width: 100%; max-width: 94%; margin: 0 auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px; }
+.manual-controls-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
+.step-btn { width: 45px; height: 45px; border-radius: 12px; border: none; background: #16305b; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; }
+.step-btn:active { transform: scale(0.9); }
+.manual-score-input { width: 60px; height: 45px; text-align: center; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: 2px solid #cbd5e1; outline: none; }
+.manual-score-input:focus { border-color: #ff9800; }
 
-/* כרטיסיית קטגוריה בפריסה מלאה ויפהפייה */
-.category-card-row { background-color: white; border-radius: 24px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03); display: flex; flex-direction: column; gap: 16px; }
-.cat-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.title-block { display: flex; flex-direction: column; gap: 6px; text-align: right; flex: 1; }
-.cat-card-title { font-weight: 800; color: #1e293b; font-size: 1.2rem; }
+/* פוטר */
+.rating-fixed-footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); display: flex; justify-content: center; }
+.full-page-save-btn { width: 100%; max-width: 500px; background: #10b981; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: bold; font-size: 1.2rem; }
 
-/* 🌟 טקסט ההסבר "מה בודקים" תחת הקטגוריה 🌟 */
-.cat-card-desc { font-size: 0.92rem; color: #64748b; line-height: 1.5; font-weight: 500; }
-
-/* עיצוב משודרג לבלון הציון המילולי */
-.cat-card-score { font-size: 1rem; font-weight: bold; padding: 6px 16px; border-radius: 14px; text-align: center; white-space: nowrap; border: 2px solid transparent; transition: all 0.2s; }
-.cat-card-score.unrated { background-color: #f1f5f9; color: #94a3b8; font-weight: 500; }
-.cat-card-score.rated { background-color: #ffffff; color: #0f172a; font-size: 1.15rem; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
-
-/* סליידרים עבים ומפנקים ברוחב מקסימלי */
-.full-page-slider { width: 100%; -webkit-appearance: none; height: 12px; border-radius: 8px; background: #e2e8f0; outline: none; margin: 12px 0; cursor: pointer; }
-.full-page-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); box-shadow: 0 4px 10px rgba(245, 124, 0, 0.35); transition: transform 0.1s; }
-.full-page-slider::-webkit-slider-thumb:active { transform: scale(1.15); }
-
-/* פוטר קבוע בתחתית */
-.rating-fixed-footer { position: fixed; bottom: 0; width: 100%; background-color: white; padding: 18px 24px; box-shadow: 0 -4px 20px rgba(0,0,0,0.04); display: flex; justify-content: center; z-index: 100; }
-.full-page-save-btn { width: 100%; max-width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 18px; font-size: 1.3rem; font-weight: bold; border-radius: 18px; cursor: pointer; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25); }
+/* מודאל סורק */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.modal-card { background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; }
