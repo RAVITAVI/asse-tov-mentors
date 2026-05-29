@@ -18,6 +18,7 @@ const modalProjectCreations = document.getElementById('modal-project-creators');
 const modalProjectNo = document.getElementById('modal-project-no');
 const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
+const modalCancelBtn = document.getElementById('modal-cancel-btn'); // כפתור הביטול החדש
 
 const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
@@ -42,13 +43,10 @@ const CATEGORIES_DATA = [
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
 
-// 🔒 מניעה הרמטית של אתחול/רענון האפליקציה בטעות בעת גלילה למעלה בנייד 🔒
 window.addEventListener('touchstart', function(e) {
     if (e.touches.length !== 1) return;
     const scrollY = window.scrollY || document.documentElement.scrollTop;
-    if (scrollY === 0 && e.touches[0].clientY > 0) {
-        // גורם לדפדפן להתעלם ממחוות משיכת הרענון העליונה
-    }
+    if (scrollY === 0 && e.touches[0].clientY > 0) { }
 }, { passive: true });
 
 function showScreen(targetScreen) {
@@ -131,10 +129,9 @@ function fetchAndDisplayProjects() {
         boysProjectsGrid.innerHTML = ""; girlsProjectsGrid.innerHTML = "";
         rawProjectsData = [];
         
-        // 🌟 איתור חכם ודינמי של עמודת שמות היוזמים לפי הכותרת המדויקת 'name' 🌟
         const headers = parseCSVLine(lines[0]);
         let nameColumnIndex = headers.findIndex(h => h.toLowerCase() === 'name');
-        if (nameColumnIndex === -1) nameColumnIndex = 3; // עמודה D כגיבוי אולטימטיבי
+        if (nameColumnIndex === -1) nameColumnIndex = 3; 
         
         let total = 0, voted = 0;
         for (let i = 1; i < lines.length; i++) {
@@ -181,7 +178,10 @@ function renderRatingCategories() {
             <div class="score-badge-wrapper">
                 <span id="feedback-${cat.id}" class="cat-card-feedback unrated">טרם דורג</span>
             </div>
-            <input type="range" min="0" max="10" value="0" class="full-page-slider" id="slider-${cat.id}">
+            <button id="lock-btn-${cat.id}" class="unlock-trigger-btn" onclick="toggleSliderLock(${cat.id})">
+                🔒 לחץ לגרירה
+            </button>
+            <input type="range" min="0" max="10" value="0" class="full-page-slider" id="slider-${cat.id}" disabled style="pointer-events: none;">
             <div class="manual-controls-row">
                 <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
                 <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
@@ -189,11 +189,35 @@ function renderRatingCategories() {
             </div>
         `;
         categoriesContainer.appendChild(card);
+        
         const slider = card.querySelector(`#slider-${cat.id}`);
         const input = card.querySelector(`#input-${cat.id}`);
+
         slider.oninput = () => updateSync(cat.id, slider.value, 'slider');
+        slider.addEventListener('touchend', () => lockSliderBack(cat.id));
+        slider.addEventListener('mouseup', () => lockSliderBack(cat.id));
         input.oninput = () => updateSync(cat.id, input.value, 'input');
     });
+}
+
+window.toggleSliderLock = function(id) {
+    const slider = document.getElementById(`slider-${id}`);
+    const lockBtn = document.getElementById(`lock-btn-${id}`);
+    slider.disabled = false;
+    slider.style.pointerEvents = "auto";
+    slider.classList.add("unlocked-slider");
+    lockBtn.innerHTML = "🔸 גרוֹר כעת...";
+    lockBtn.classList.add("active-unlocked");
+}
+
+function lockSliderBack(id) {
+    const slider = document.getElementById(`slider-${id}`);
+    const lockBtn = document.getElementById(`lock-btn-${id}`);
+    slider.disabled = true;
+    slider.style.pointerEvents = "none";
+    slider.classList.remove("unlocked-slider");
+    lockBtn.innerHTML = "🔒 לחץ לגרירה";
+    lockBtn.classList.remove("active-unlocked");
 }
 
 function updateSync(id, val, source) {
@@ -202,7 +226,8 @@ function updateSync(id, val, source) {
     const feedback = document.getElementById(`feedback-${id}`);
     let v = parseInt(val) || 0;
     if (v > 10) v = 10;
-    if (source !== 'slider') slider.value = v;
+    
+    slider.value = v;
     if (source !== 'input') input.value = (v === 0) ? "" : v;
 
     if (v === 0) {
@@ -220,7 +245,8 @@ function updateSync(id, val, source) {
 
 window.stepValue = function(id, delta) {
     const slider = document.getElementById(`slider-${id}`);
-    let newVal = parseInt(slider.value) + delta;
+    let currentVal = parseInt(slider.value) || 0;
+    let newVal = currentVal + delta;
     if (newVal > 10) newVal = 10; if (newVal < 1) newVal = 1;
     updateSync(id, newVal, 'manual');
 }
@@ -235,19 +261,24 @@ function openRatingPage(pNo, pTitle, pCreators, pGender) {
     renderRatingCategories();
     showScreen(ratingScreen);
     
-    // איפוס גלילה בטוח ללא הפעלת מחוות רענון
     ratingScreen.scrollTop = 0;
     window.scrollTo(0, 0); 
 }
 
-// 🔷 סדר חיבור האירועים מותאם אישית למניעת קריסות בסמארטפונים 🔷
+// ❌ פונקציית כפתור בטל וחזור ללובי - מחזירה בצורה נקייה ללא שמירה ❌
+function handleCancelRating() {
+    showScreen(lobbyScreen);
+    currentSelectedProjectNo = null;
+    currentSelectedProjectGender = "";
+}
+modalCancelBtn.onclick = handleCancelRating;
+ratingBackBtn.onclick = handleCancelRating; // חץ החזרה העליון מתפקד גם הוא כביטול
+
 enterBtn.onclick = () => {
     if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
     currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
     showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
 };
-
-ratingBackBtn.onclick = () => showScreen(lobbyScreen);
 
 modalSaveBtn.onclick = function() {
     const scores = []; let sum = 0;
@@ -292,5 +323,4 @@ function stopScanner() {
 }
 scannerCloseX.onclick = stopScanner;
 
-// 🏁 הפעלה בשורה האחרונה בהחלט לאחר טעינת כלל הפונקציות בבטחה
 loadMentorsFromServer();
