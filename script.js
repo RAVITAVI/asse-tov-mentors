@@ -30,15 +30,11 @@ const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
+
+// 🔗 הדביקי פה את הקישור שקיבלת מה-New Deployment בגוגל שייטס שלך
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
 
-let currentMentor = ""; 
-let rawProjectsData = []; 
-let currentMentorVotesRow = {}; 
-let currentSelectedProjectNo = null;
-let currentSelectedProjectGender = "";
-
-// 📊 רשת ביטחון מקומית: רשימת המנטורים האמיתית שלכם מסונכרנת מהשיטס למקרה חירום! 📊
+// 📊 רשת ביטחון מקומית: שמות המנטורים האמיתיים מסונכרנים מהשיטס למקרה חירום של קריסת אינטרנט באולם 📊
 const BACKUP_MENTORS = [
     "רבית אביטן",
     "שמואל פרומן",
@@ -61,6 +57,7 @@ const CATEGORIES_DATA = [
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
 
+// מניעה הרמטית של אתחול/רענון האפליקציה בטעות בעת גלילה למעלה בנייד
 window.addEventListener('touchstart', function(e) {
     if (e.touches.length !== 1) return;
     const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -95,8 +92,6 @@ function loadMentorsFromServer() {
         return;
     }
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
-    
-    mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
     
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
@@ -139,9 +134,11 @@ function fetchMentorVotesAndRenderLobby() {
         const lines = text.split(/\r?\n/);
         currentMentorVotesRow = {}; 
         for (let i = 1; i < lines.length; i++) {
-            const columns = parseCSVLine(columns = parseCSVLine(lines[i]));
+            const columns = parseCSVLine(lines[i]);
+            // 🌟 סינון כפול וחכם: בודק התאמה מדויקת גם של מספר המיזם וגם של המגדר (בנים/בנות)
             if (columns[1] && columns[1].trim() === currentMentor.trim()) {
-                currentMentorVotesRow[parseInt(columns[2])] = true;
+                const projectKey = `${parseInt(columns[2])}_${columns[3].trim().toLowerCase()}`;
+                currentMentorVotesRow[projectKey] = true;
             }
         }
         fetchAndDisplayProjects();
@@ -174,7 +171,11 @@ function fetchAndDisplayProjects() {
             
             rawProjectsData.push({ no: pNo, title: cols[2], creators: pCreators, gender: pGender });
             total++;
-            const done = currentMentorVotesRow[pNo] || false; if (done) voted++;
+            
+            // בדיקת ה-V החכמה לפי (מספר מיזם + מגדר)
+            const currentProjectKey = `${pNo}_${pGender}`;
+            const done = currentMentorVotesRow[currentProjectKey] || false; 
+            if (done) voted++;
             
             const btn = document.createElement('div');
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
@@ -306,6 +307,7 @@ enterBtn.onclick = () => {
     showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
 };
 
+// 💾 פונקציית השמירה המלאה והסופית עם עמודת המגדר (Gender) החדשה! 💾
 modalSaveBtn.onclick = function() {
     const scores = []; let sum = 0;
     for (let i = 1; i <= 7; i++) {
@@ -316,10 +318,19 @@ modalSaveBtn.onclick = function() {
     modalSaveBtn.innerText = "שומר... ⏳"; modalSaveBtn.disabled = true;
     fetch(APPS_SCRIPT_URL, {
         method: "POST", mode: "no-cors", cache: "no-cache",
-        body: JSON.stringify({ mentorName: currentMentor, projectNumber: currentSelectedProjectNo, gender: currentSelectedProjectGender, cat1: scores[0], cat2: scores[1], cat3: scores[2], cat4: scores[3], cat5: scores[4], cat6: scores[5], cat7: scores[6], totalScore: sum })
+        body: JSON.stringify({ 
+            mentorName: currentMentor, 
+            projectNumber: currentSelectedProjectNo, 
+            gender: currentSelectedProjectGender, // שולח 'male' או 'female' לעמודה D בשייטס
+            cat1: scores[0], cat2: scores[1], cat3: scores[2], cat4: scores[3], cat5: scores[4], cat6: scores[5], cat7: scores[6], 
+            totalScore: sum 
+        })
     }).then(() => {
-        alert("נשמר בהצלחה!"); modalSaveBtn.innerText = "💾 שמור דירוג והמשך";
-        modalSaveBtn.disabled = false; showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
+        alert("נשמר בהצלחה!"); 
+        modalSaveBtn.innerText = "💾 שמור דירוג והמשך";
+        modalSaveBtn.disabled = false; 
+        showScreen(lobbyScreen); 
+        fetchMentorVotesAndRenderLobby();
     });
 };
 
