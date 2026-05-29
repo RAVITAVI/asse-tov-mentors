@@ -37,7 +37,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ih
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
-let currentMentorVotesRow = {}; // מבנה: { "3_male": [7,8,9,5,6,7,8] } - מחזיק תמיד את הדירוג האחרון ביותר
+let currentMentorVotesRow = {}; // מבנה: { "3_male": [7,8,9,5,6,7,8] }
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
 
@@ -86,7 +86,6 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
-// 🌟 פונקציית נרמול חכמה: מוודאת שהמגדר יתורגם נכון ל-male/female ללא תלות באיך הוא נכתב בגיליון 🌟
 function normalizeGender(genderStr) {
     if (!genderStr) return "male";
     const g = genderStr.trim().toLowerCase();
@@ -121,6 +120,7 @@ function useBackupMentors() {
     mentorDropdown.innerHTML = optionsHtml;
 }
 
+// 🌟 פונקציית טעינת הציונים המשופרת - איתור עמודות דינמי וחסין באגים 🌟
 function fetchMentorVotesAndRenderLobby() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -130,20 +130,38 @@ function fetchMentorVotesAndRenderLobby() {
         const lines = text.split(/\r?\n/);
         currentMentorVotesRow = {}; 
         
+        if (lines.length < 2) { fetchAndDisplayProjects(); return; }
+        
+        // איתור דינמי של מיקומי העמודות לפי הכותרות המדויקות בשייטס
+        const headers = parseCSVLine(lines[0]);
+        const idxMentor = headers.findIndex(h => h.toLowerCase().includes('mentor'));
+        const idxProject = headers.findIndex(h => h.toLowerCase().includes('project'));
+        const idxGender = headers.findIndex(h => h.toLowerCase().includes('gender'));
+        const idxCat1 = headers.findIndex(h => h.toLowerCase().includes('cat1'));
+        
+        // הגדרת ברירות מחדל קשיחות למקרה שהכותרת לא זוהתה
+        const mIdx = idxMentor !== -1 ? idxMentor : 1;
+        const pIdx = idxProject !== -1 ? idxProject : 2;
+        const gIdx = idxGender !== -1 ? idxGender : 3;
+        const c1Idx = idxCat1 !== -1 ? idxCat1 : 4;
+
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
             
-            if (columns[1] && columns[1].trim() === currentMentor.trim()) {
-                const normalizedGen = normalizeGender(columns[3]);
-                const projectKey = `${parseInt(columns[2])}_${normalizedGen}`;
+            if (columns[mIdx] && columns[mIdx].trim() === currentMentor.trim()) {
+                const normalizedGen = normalizeGender(columns[gIdx]);
+                const projectKey = `${parseInt(columns[pIdx])}_${normalizedGen}`;
                 
-                // 🌟 לוגיקת דריסה כרונולוגית מקומית: מכיוון שאנחנו רצים מלמעלה למטה, 
-                // אם מנטור עדכן מיזם מסוים מספר פעמים, הציון האחרון ביותר תמיד ידרוס ויקבע! 🌟
+                // שליפת 7 הקטגוריות ברצף מהמיקום המדויק שבו מתחילה cat1
                 currentMentorVotesRow[projectKey] = [
-                    parseInt(columns[4]) || 0, parseInt(columns[5]) || 0, parseInt(columns[6]) || 0,
-                    parseInt(columns[7]) || 0, parseInt(columns[8]) || 0, parseInt(columns[9]) || 0,
-                    parseInt(columns[10]) || 0
+                    parseInt(columns[c1Idx]) || 0,
+                    parseInt(columns[c1Idx + 1]) || 0,
+                    parseInt(columns[c1Idx + 2]) || 0,
+                    parseInt(columns[c1Idx + 3]) || 0,
+                    parseInt(columns[c1Idx + 4]) || 0,
+                    parseInt(columns[c1Idx + 5]) || 0,
+                    parseInt(columns[c1Idx + 6]) || 0
                 ];
             }
         }
@@ -185,12 +203,12 @@ function fetchAndDisplayProjects() {
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
             
-            // 🔒 חסימה קשיחה: רק מיזם ירוק (done) ניתן לפתיחה בלחיצה ישירה. מיזם אפור חסום לחלוטין! 🔒
+            // 🔒 חסימה קשיחה ומוחלטת: אם לא דורג (done === false), פונקציית הלחיצה מנוטרלת לחלוטין 🔒
             if (done) {
                 btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
             } else {
+                btn.onclick = null; // מונע כל אפשרות כניסה ללא סריקה
                 btn.style.cursor = "default";
-                btn.style.opacity = "0.9";
             }
             
             if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
@@ -215,7 +233,7 @@ function renderRatingCategories() {
     const savedScores = currentMentorVotesRow[projectKey] || [0, 0, 0, 0, 0, 0, 0];
 
     CATEGORIES_DATA.forEach((cat, index) => {
-        const prefilledValue = savedScores[index]; // 🌟 טעינה אוטומטית של הניקוד האחרון ביותר שנשמר 🌟
+        const prefilledValue = savedScores[index]; 
         
         const card = document.createElement('div');
         card.className = "category-card-row";
