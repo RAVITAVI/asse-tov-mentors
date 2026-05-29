@@ -10,19 +10,22 @@
 <body>
 
     <div id="login-screen" class="screen active">
-        <div class="login-wrapper">
-            <img src="campus-hemad-logo.jpg" alt="לוגו קמפוס חמד" class="logo-square">
-            <h1>מערכת שפיטה למנטורים</h1>
-            <p class="subtitle">כנס להצגת יוזמות "עשה טוב" תשפ"ו</p>
+        <div class="login-centered-content">
+            <div class="logo-frame">
+                <img src="campus-hemad-logo.jpg" alt="לוגו קמפוס חמד">
+            </div>
+            
+            <h1 class="main-app-title">מערכת שפיטה למנטורים</h1>
+            <p class="app-subtitle">כנס להצגת יוזמות "עשה טוב" תשפ"ו</p>
             
             <div class="login-card">
-                <label for="mentor-dropdown">בחר/י את שמך מהרשימה:</label>
-                <div class="select-wrapper">
+                <label for="mentor-dropdown" class="card-label">בחר/י את שמך מהרשימה:</label>
+                <div class="select-container">
                     <select id="mentor-dropdown" class="mentor-select">
                         <option value="">טוען רשימת מנטורים...</option>
                     </select>
                 </div>
-                <button id="enterBtn" class="enter-btn">כניסה למערכת הדירוג</button>
+                <button id="enterBtn" class="orange-login-btn">כניסה למערכת הדירוג</button>
             </div>
         </div>
     </div>
@@ -31,9 +34,9 @@
         <div class="lobby-header">
             <div class="welcome-msg">שופט/ת: <span id="user-display-name">---</span></div>
             <div class="progress-container">
-                <span class="progress-text">התקדמות דירוג: <strong id="progress-count">0/0</strong></span>
+                <span class="progress-text">התקדמות: <strong id="progress-count">0/0</strong></span>
                 <div class="progress-bar-bg">
-                    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
                 </div>
             </div>
         </div>
@@ -52,19 +55,6 @@
         </div>
     </div>
 
-    <div id="scanner-modal" class="modal-overlay">
-        <div class="modal-card scanner-card">
-            <button id="scanner-close-x" class="modal-close-x">✕</button>
-            <div class="modal-header-popup">
-                <h3>סריקת ברקוד המיזם</h3>
-            </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 15px; text-align: center; color: #475569;">כוונו את המצלמה לברקוד שעל השולחן</p>
-                <div id="qr-reader" style="width: 100%; max-width: 350px; margin: 0 auto; border-radius: 12px; overflow: hidden;"></div>
-            </div>
-        </div>
-    </div>
-
     <div id="rating-screen" class="screen">
         <div class="rating-header">
             <button id="rating-back-btn" class="back-arrow-btn">➔</button>
@@ -78,12 +68,18 @@
         </div>
 
         <div class="rating-body-scroll">
-            <div class="rating-container-inside" id="categories-container">
-                </div>
+            <div class="rating-container-inside" id="categories-container"></div>
         </div>
 
         <div class="rating-fixed-footer">
             <button id="modal-save-btn" class="full-page-save-btn">💾 שמור דירוג והמשך</button>
+        </div>
+    </div>
+
+    <div id="scanner-modal" class="modal-overlay">
+        <div class="modal-card">
+            <button id="scanner-close-x" class="modal-close-x">✕</button>
+            <div id="qr-reader" style="width: 100%;"></div>
         </div>
     </div>
 
