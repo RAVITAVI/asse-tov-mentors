@@ -98,28 +98,45 @@ function fetchMentorVotesAndRenderLobby() {
     });
 }
 
+// 🌟 תיקון פונקציית ההזרקה לגרידים המתאימים (בנים לחוד ובנות לחוד) 🌟
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Projects`;
+    
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
-        boysProjectsGrid.innerHTML = ""; girlsProjectsGrid.innerHTML = "";
+        
+        // ניקוי מלא של שני הגרידים בלובי לפני הזרקת הנתונים
+        boysProjectsGrid.innerHTML = ""; 
+        girlsProjectsGrid.innerHTML = "";
         rawProjectsData = [];
+        
         let total = 0, voted = 0;
         for (let i = 1; i < lines.length; i++) {
             const cols = parseCSVLine(lines[i]);
             const pNo = parseInt(cols[1]); if (!pNo) continue;
+            
             let pGender = cols[5] ? cols[5].trim().toLowerCase() : "";
             if (pGender.includes('female') || pGender.includes('בת') || pGender.includes('בנות')) pGender = 'female'; else pGender = 'male';
+            
             rawProjectsData.push({ no: pNo, title: cols[2], gender: pGender });
             total++;
+            
             const done = currentMentorVotesRow[pNo] || false; if (done) voted++;
+            
             const btn = document.createElement('div');
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
+            
             btn.onclick = () => openRatingPage(pNo, cols[2], pGender);
-            if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
+            
+            // 🔷 התיקון המרכזי: הזרקה מדויקת לגריד הבנים או לגריד הבנות בהתאמה מוחלטת
+            if (pGender === 'female') {
+                girlsProjectsGrid.appendChild(btn); 
+            } else {
+                boysProjectsGrid.appendChild(btn); 
+            }
         }
         progressCount.innerText = `${voted}/${total}`;
         progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
@@ -242,7 +259,11 @@ scanQrBtn.onclick = () => {
 };
 
 function stopScanner() {
-    if (html5QrcodeScanner) html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none');
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none');
+    } else {
+        scannerModal.style.display = 'none';
+    }
 }
 scannerCloseX.onclick = stopScanner;
 loadMentorsFromServer();
