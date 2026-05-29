@@ -68,7 +68,7 @@ function loadMentorsFromServer() {
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
-        mentorDropdown.innerHTML = '<option value="">בחר שופט/ת...</option>';
+        mentorDropdown.innerHTML = '<option value="">בחר/י את שמך מהרשימה...</option>';
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
@@ -111,12 +111,12 @@ function fetchAndDisplayProjects() {
             const cols = parseCSVLine(lines[i]);
             const pNo = parseInt(cols[1]); if (!pNo) continue;
             let pGender = cols[5] ? cols[5].trim().toLowerCase() : "";
-            if (pGender.includes('female') || pGender.includes('בת')) pGender = 'female'; else pGender = 'male';
+            if (pGender.includes('female') || pGender.includes('בת') || pGender.includes('בנות')) pGender = 'female'; else pGender = 'male';
             rawProjectsData.push({ no: pNo, title: cols[2], gender: pGender });
             total++;
             const done = currentMentorVotesRow[pNo] || false; if (done) voted++;
             const btn = document.createElement('div');
-            btn.className = `project-grid-button ${done ? 'color-green' : 'color-neutral'}`;
+            btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
             btn.onclick = () => openRatingPage(pNo, cols[2], pGender);
             if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
@@ -149,10 +149,8 @@ function renderRatingCategories() {
                     <span id="feedback-${cat.id}" class="cat-card-feedback unrated">טרם דורג</span>
                 </div>
             </div>
-            
             <div class="slider-control-group">
                 <input type="range" min="0" max="10" value="0" class="full-page-slider" id="slider-${cat.id}">
-                
                 <div class="manual-controls-row">
                     <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
                     <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
@@ -161,16 +159,10 @@ function renderRatingCategories() {
             </div>
         `;
         categoriesContainer.appendChild(card);
-
         const slider = card.querySelector(`#slider-${cat.id}`);
         const input = card.querySelector(`#input-${cat.id}`);
-
         slider.oninput = () => updateSync(cat.id, slider.value, 'slider');
-        input.oninput = () => {
-            let v = parseInt(input.value);
-            if (v > 10) v = 10; if (v < 1) v = 1;
-            updateSync(cat.id, v, 'input');
-        };
+        input.oninput = () => updateSync(cat.id, input.value, 'input');
     });
 }
 
@@ -178,8 +170,8 @@ function updateSync(id, val, source) {
     const slider = document.getElementById(`slider-${id}`);
     const input = document.getElementById(`input-${id}`);
     const feedback = document.getElementById(`feedback-${id}`);
-    const v = parseInt(val) || 0;
-
+    let v = parseInt(val) || 0;
+    if (v > 10) v = 10;
     if (source !== 'slider') slider.value = v;
     if (source !== 'input') input.value = (v === 0) ? "" : v;
 
@@ -189,7 +181,6 @@ function updateSync(id, val, source) {
     } else {
         feedback.innerText = `${v} | ${getFeedbackText(v)}`;
         feedback.className = "cat-card-feedback rated";
-        
         if (v <= 3) feedback.className += " low";
         else if (v <= 6) feedback.className += " mid";
         else if (v <= 8) feedback.className += " high";
@@ -237,7 +228,6 @@ enterBtn.onclick = () => {
 };
 
 ratingBackBtn.onclick = () => showScreen(lobbyScreen);
-
 scanQrBtn.onclick = () => {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
