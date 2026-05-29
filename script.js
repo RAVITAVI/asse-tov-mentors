@@ -12,12 +12,9 @@ const boysProjectsGrid = document.getElementById('boys-projects-grid');
 const girlsProjectsGrid = document.getElementById('girls-projects-grid');
 const scanQrBtn = document.getElementById('scan-qr-btn');
 
-const scannerModal = document.getElementById('scanner-modal');
-const scannerCloseX = document.getElementById('scanner-close-x');
-let html5QrcodeScanner = null;
-
 const ratingBackBtn = document.getElementById('rating-back-btn');
 const modalProjectTitle = document.getElementById('modal-project-title');
+const modalProjectCreations = document.getElementById('modal-project-creators');
 const modalProjectNo = document.getElementById('modal-project-no');
 const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
@@ -98,7 +95,6 @@ function fetchMentorVotesAndRenderLobby() {
     });
 }
 
-// 🌟 תיקון פונקציית ההזרקה לגרידים המתאימים (בנים לחוד ובנות לחוד) 🌟
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -106,37 +102,28 @@ function fetchAndDisplayProjects() {
     
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
-        
-        // ניקוי מלא של שני הגרידים בלובי לפני הזרקת הנתונים
-        boysProjectsGrid.innerHTML = ""; 
-        girlsProjectsGrid.innerHTML = "";
+        boysProjectsGrid.innerHTML = ""; girlsProjectsGrid.innerHTML = "";
         rawProjectsData = [];
-        
         let total = 0, voted = 0;
         for (let i = 1; i < lines.length; i++) {
             const cols = parseCSVLine(lines[i]);
             const pNo = parseInt(cols[1]); if (!pNo) continue;
             
+            // עמודה D היא היזמים (אינדקס 3)
+            const pCreators = cols[3] || "יזמים לא ידועים";
             let pGender = cols[5] ? cols[5].trim().toLowerCase() : "";
             if (pGender.includes('female') || pGender.includes('בת') || pGender.includes('בנות')) pGender = 'female'; else pGender = 'male';
             
-            rawProjectsData.push({ no: pNo, title: cols[2], gender: pGender });
+            rawProjectsData.push({ no: pNo, title: cols[2], creators: pCreators, gender: pGender });
             total++;
-            
             const done = currentMentorVotesRow[pNo] || false; if (done) voted++;
             
             const btn = document.createElement('div');
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
+            btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
             
-            btn.onclick = () => openRatingPage(pNo, cols[2], pGender);
-            
-            // 🔷 התיקון המרכזי: הזרקה מדויקת לגריד הבנים או לגריד הבנות בהתאמה מוחלטת
-            if (pGender === 'female') {
-                girlsProjectsGrid.appendChild(btn); 
-            } else {
-                boysProjectsGrid.appendChild(btn); 
-            }
+            if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
         }
         progressCount.innerText = `${voted}/${total}`;
         progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
@@ -151,28 +138,23 @@ function getFeedbackText(val) {
     return "מצוין ויוצא דופן";
 }
 
+// 🔨 יצירת הקטגוריות בסדר המדויק שביקשת 🔨
 function renderRatingCategories() {
     categoriesContainer.innerHTML = "";
     CATEGORIES_DATA.forEach(cat => {
         const card = document.createElement('div');
         card.className = "category-card-row";
         card.innerHTML = `
-            <div class="cat-card-header">
-                <div class="title-block">
-                    <span class="cat-card-title">${cat.title}</span>
-                    <span class="cat-card-desc">${cat.desc}</span>
-                </div>
-                <div class="score-badge-wrapper">
-                    <span id="feedback-${cat.id}" class="cat-card-feedback unrated">טרם דורג</span>
-                </div>
+            <div class="cat-card-title">${cat.title}</div>
+            <div class="cat-card-desc">${cat.desc}</div>
+            <div class="score-badge-wrapper">
+                <span id="feedback-${cat.id}" class="cat-card-feedback unrated">טרם דורג</span>
             </div>
-            <div class="slider-control-group">
-                <input type="range" min="0" max="10" value="0" class="full-page-slider" id="slider-${cat.id}">
-                <div class="manual-controls-row">
-                    <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
-                    <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
-                    <button class="step-btn plus" onclick="stepValue(${cat.id}, 1)">+</button>
-                </div>
+            <input type="range" min="0" max="10" value="0" class="full-page-slider" id="slider-${cat.id}">
+            <div class="manual-controls-row">
+                <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
+                <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
+                <button class="step-btn plus" onclick="stepValue(${cat.id}, 1)">+</button>
             </div>
         `;
         categoriesContainer.appendChild(card);
@@ -212,13 +194,16 @@ window.stepValue = function(id, delta) {
     updateSync(id, newVal, 'manual');
 }
 
-function openRatingPage(pNo, pTitle, pGender) {
+function openRatingPage(pNo, pTitle, pCreators, pGender) {
     currentSelectedProjectNo = pNo; currentSelectedProjectGender = pGender;
-    modalProjectTitle.innerText = pTitle; modalProjectNo.innerText = "מיזם מספר " + pNo;
+    modalProjectTitle.innerText = pTitle; 
+    modalProjectCreations.innerText = "יזמים: " + pCreators;
+    modalProjectNo.innerText = "מיזם מספר " + pNo;
     modalProjectGender.innerText = pGender === 'female' ? "מיזם בנות" : "מיזם בנים";
     modalProjectGender.className = `gender-badge ${pGender}`;
     renderRatingCategories();
     showScreen(ratingScreen);
+    window.scrollTo(0, 0); // גלילה לראש העמוד
 }
 
 modalSaveBtn.onclick = function() {
@@ -245,6 +230,11 @@ enterBtn.onclick = () => {
 };
 
 ratingBackBtn.onclick = () => showScreen(lobbyScreen);
+
+const scannerModal = document.getElementById('scanner-modal');
+const scannerCloseX = document.getElementById('scanner-close-x');
+let html5QrcodeScanner = null;
+
 scanQrBtn.onclick = () => {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
@@ -254,16 +244,15 @@ scanQrBtn.onclick = () => {
         const gen = raw.startsWith('G') ? 'female' : 'male';
         stopScanner();
         const p = rawProjectsData.find(x => x.no === num && x.gender === gen);
-        if (p) openRatingPage(p.no, p.title, p.gender); else openRatingPage(num, `מיזם ${num}`, gen);
+        if (p) openRatingPage(p.no, p.title, p.creators, p.gender); 
+        else openRatingPage(num, `מיזם ${num}`, "לא ידוע", gen);
     });
 };
 
 function stopScanner() {
     if (html5QrcodeScanner) {
         html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none');
-    } else {
-        scannerModal.style.display = 'none';
-    }
+    } else { scannerModal.style.display = 'none'; }
 }
 scannerCloseX.onclick = stopScanner;
 loadMentorsFromServer();
