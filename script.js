@@ -1,6 +1,6 @@
 const loginScreen = document.getElementById('login-screen');
 const lobbyScreen = document.getElementById('lobby-screen');
-const ratingScreen = document.getElementById('rating-screen'); // מסך הדירוג המלא החדש
+const ratingScreen = document.getElementById('rating-screen'); 
 
 const mentorDropdown = document.getElementById('mentor-dropdown');
 const enterBtn = document.getElementById('enterBtn');
@@ -25,7 +25,7 @@ const modalSaveBtn = document.getElementById('modal-save-btn');
 
 // 🔹 קישורי המערכת המעודכנים של המנטורים
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyTj6OuSvDvgfru8VN-9SCwxmciiBZ59Y-aCZeWZLzXV1AgZvTwMdKM2jVgnIG3OSI/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
@@ -177,7 +177,16 @@ function fetchAndDisplayProjects() {
         }).catch(err => console.error("שגיאה בטעינת מיזמים:", err));
 }
 
-// 🌟 מעבר למסך הדירוג המלא החדש 🌟
+// 🌟 פונקציה לעדכון טקסט משוב מילולי דינמי לפי מספר 🌟
+function getFeedbackText(val) {
+    if (val === 0) return "טרם דורג";
+    if (val >= 1 && val <= 3) return `${val} - 🔴 טעון שיפור`;
+    if (val >= 4 && val <= 6) return `${val} - 123456789`; // בינוני
+    if (val >= 7 && val <= 8) return `${val} - 🟢 טוב מאוד`;
+    return `${val} - ✨ מצוין ויוצא דופן`;
+}
+
+// מעבר למסך הדירוג המלא
 function openRatingPage(projectNo, projectTitle, projectGender) {
     currentSelectedProjectNo = projectNo;
     currentSelectedProjectGender = projectGender;
@@ -192,7 +201,6 @@ function openRatingPage(projectNo, projectTitle, projectGender) {
         modalProjectGender.className = "gender-badge male";
     }
 
-    // איפוס סליידרים
     for (let i = 1; i <= 7; i++) {
         const slider = document.getElementById(`slider-${i}`);
         const preview = document.getElementById(`val-preview-${i}`);
@@ -201,34 +209,38 @@ function openRatingPage(projectNo, projectTitle, projectGender) {
         preview.className = "cat-card-score unrated";
     }
 
-    showScreen(ratingScreen); // ניווט למסך המלא
+    showScreen(ratingScreen);
 }
 
-// עדכון סליידרים בלייב במסך המלא
+// 🌟 הפעלת המלל הדינמי והצבעים בעת הזזת הסליידרים 🌟
 for (let i = 1; i <= 7; i++) {
     const slider = document.getElementById(`slider-${i}`);
     const preview = document.getElementById(`val-preview-${i}`);
     
     slider.oninput = function(e) {
         const val = parseInt(e.target.value);
+        preview.innerText = getFeedbackText(val);
+        
         if (val === 0) {
-            preview.innerText = "טרם דורג";
             preview.className = "cat-card-score unrated";
         } else {
-            preview.innerText = val;
             preview.className = "cat-card-score rated";
+            // צביעה חכמה דינמית של תווית הציון
+            if (val <= 3) preview.style.borderColor = "#ef4444";
+            else if (val <= 6) preview.style.borderColor = "#eab308";
+            else if (val <= 8) preview.style.borderColor = "#10b981";
+            else preview.style.borderColor = "#8b5cf6";
         }
     };
 }
 
-// ➔ חזרה ללובי (מתפקד ככפתור בטל)
 ratingBackBtn.onclick = function() {
     showScreen(lobbyScreen);
     currentSelectedProjectNo = null;
     currentSelectedProjectGender = "";
 };
 
-// כפתור שמור - שליחת הנתונים ל-Apps Script
+// כפתור שמור
 modalSaveBtn.onclick = function() {
     const scores = [];
     let sum = 0;
