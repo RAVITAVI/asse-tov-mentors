@@ -2,9 +2,8 @@ const loginScreen = document.getElementById('login-screen');
 const mentorDropdown = document.getElementById('mentor-dropdown');
 const enterBtn = document.getElementById('enterBtn');
 
-// 🔹 קישורי בסיס הנתונים החדש של המנטורים
-const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1-FSsI60tnB40x1p-9S1qAJLdFW8cdAYoc_NjYdGgANs/edit#gid=0";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyTj6OuSvDvgfru8VN-9SCwxmciiBZ59Y-aCZeWZLzXV1AgZvTwMdKM2jVgnIG3OSI/exec";
+// 🔹 קישור הגוגל שיטס החדש והייעודי של המנטורים
+const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
 
 let currentMentor = ""; // משתנה גלובלי שישמור את שם המנטור המחובר
 
@@ -37,11 +36,11 @@ function loadMentorsFromServer() {
             const lines = text.split(/\r?\n/);
             mentorDropdown.innerHTML = '<option value="">בחר שופט/ת...</option>';
             
-            // רצים משורה 1 (מדלגים על שורת הכותרת)
+            // רצים משורה 1 (מדלגים על שורת הכותרת בגיליון)
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
                 const columns = parseCSVLine(lines[i]);
-                const mentorName = columns[1]; // עמודה B בגיליון
+                const mentorName = columns[1]; // עמודה B בגיליון (Mentor_Name)
                 
                 if (mentorName) {
                     const option = document.createElement('option');
@@ -70,6 +69,6 @@ enterBtn.onclick = function() {
     }
     
     currentMentor = selectedMentor; // שמירת השם בזיכרון האפליקציה
-    alert("ברוך הבא " + currentMentor + "! בשלב הבא נעבור למסך הלובי.");
-    // כאן נכתוב בהמשך את הפקודה שתעביר אותו למסך הבא
+    alert("ברוך הבא " + currentMentor + "! המערכת מזהה אותך בהצלחה.");
+    // בשלב הבא נחבר לכאן את המעבר ללובי הראשי
 };
