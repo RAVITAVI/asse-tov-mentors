@@ -1,4 +1,3 @@
-// 🌟 פונקציית טעינה ראשונית חסינת קריסות - הדבר הראשון שרץ באפליקציה! 🌟
 document.addEventListener("DOMContentLoaded", () => {
     loadMentorsFromServer();
 });
@@ -25,27 +24,25 @@ const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
+// רכיבי הודעות המודאל הנקיות
+const customAlertModal = document.getElementById('custom-alert-modal');
+const customAlertText = document.getElementById('custom-alert-text');
+const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
+
 const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
-
-// 🔗 הדביקי פה את הקישור שקיבלת מה-New Deployment בגוגל שייטס שלך
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
 
-// 📊 רשת ביטחון מקומית: שמות המנטורים האמיתיים מסונכרנים מהשיטס למקרה חירום של קריסת אינטרנט באולם 📊
-const BACKUP_MENTORS = [
-    "רבית אביטן",
-    "שמואל פרומן",
-    "מיטל כהן",
-    "אייל רוזנברג",
-    "דוד לוי",
-    "ניר ברקוביץ",
-    "דפנה אשכנזי",
-    "גלעד שמר",
-    "אורית חדד"
-];
+let currentMentor = ""; 
+let rawProjectsData = []; 
+let currentMentorVotesRow = {}; // מחזיק מעכשיו את רשימת הציונים המלאה שנמשכה: { projectKey: [cat1, cat2...] }
+let currentSelectedProjectNo = null;
+let currentSelectedProjectGender = "";
+
+const BACKUP_MENTORS = ["רבית אביטן", "שמואל פרומן", "מיטל כהן", "אייל רוזנברג", "דוד לוי", "ניר ברקוביץ", "דפנה אשכנזי", "גלעד שמר", "אורית חדד"];
 
 const CATEGORIES_DATA = [
     { id: 1, title: "👥 מנהיגות וצוות", desc: "שיתוף פעולה בפיתוח המיזם הכולל ניהול וחלוקת תפקידים ברורה בה הסטודנט תורם את חלקו מתוך חוזקותיו." },
@@ -57,7 +54,13 @@ const CATEGORIES_DATA = [
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
 
-// מניעה הרמטית של אתחול/רענון האפליקציה בטעות בעת גלילה למעלה בנייד
+// 🌟 פונקציית הודעות נקייה ומעוצבת (מחליפה את ה-alert המיושן) 🌟
+function showAlert(message) {
+    customAlertText.innerText = message;
+    customAlertModal.style.display = 'flex';
+}
+customAlertCloseBtn.onclick = () => customAlertModal.style.display = 'none';
+
 window.addEventListener('touchstart', function(e) {
     if (e.touches.length !== 1) return;
     const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -87,17 +90,13 @@ function parseCSVLine(line) {
 
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!matches || !matches[1]) {
-        useBackupMentors();
-        return;
-    }
+    if (!matches || !matches[1]) { useBackupMentors(); return; }
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
     
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
         let optionsHtml = '<option value="">בחר/י את שמך מהרשימה...</option>';
         let count = 0;
-
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
@@ -106,23 +105,13 @@ function loadMentorsFromServer() {
                 count++;
             }
         }
-        
-        if (count > 0) {
-            mentorDropdown.innerHTML = optionsHtml;
-        } else {
-            useBackupMentors();
-        }
-    }).catch(err => {
-        console.error("שגיאה, מפעיל רשימת גיבוי מקומית:", err);
-        useBackupMentors();
-    });
+        if (count > 0) { mentorDropdown.innerHTML = optionsHtml; } else { useBackupMentors(); }
+    }).catch(err => { useBackupMentors(); });
 }
 
 function useBackupMentors() {
     let optionsHtml = '<option value="">בחר/י את שמך מהרשימה (מצב גיבוי)...</option>';
-    BACKUP_MENTORS.forEach(name => {
-        optionsHtml += `<option value="${name}">${name}</option>`;
-    });
+    BACKUP_MENTORS.forEach(name => { optionsHtml += `<option value="${name}">${name}</option>`; });
     mentorDropdown.innerHTML = optionsHtml;
 }
 
@@ -135,10 +124,14 @@ function fetchMentorVotesAndRenderLobby() {
         currentMentorVotesRow = {}; 
         for (let i = 1; i < lines.length; i++) {
             const columns = parseCSVLine(lines[i]);
-            // 🌟 סינון כפול וחכם: בודק התאמה מדויקת גם של מספר המיזם וגם של המגדר (בנים/בנות)
+            // 🌟 שומר את מערך הציונים השלם (עמודות E עד K הן אינדקסים 4 עד 10)
             if (columns[1] && columns[1].trim() === currentMentor.trim()) {
                 const projectKey = `${parseInt(columns[2])}_${columns[3].trim().toLowerCase()}`;
-                currentMentorVotesRow[projectKey] = true;
+                currentMentorVotesRow[projectKey] = [
+                    parseInt(columns[4]) || 0, parseInt(columns[5]) || 0, parseInt(columns[6]) || 0,
+                    parseInt(columns[7]) || 0, parseInt(columns[8]) || 0, parseInt(columns[9]) || 0,
+                    parseInt(columns[10]) || 0
+                ];
             }
         }
         fetchAndDisplayProjects();
@@ -172,15 +165,20 @@ function fetchAndDisplayProjects() {
             rawProjectsData.push({ no: pNo, title: cols[2], creators: pCreators, gender: pGender });
             total++;
             
-            // בדיקת ה-V החכמה לפי (מספר מיזם + מגדר)
             const currentProjectKey = `${pNo}_${pGender}`;
-            const done = currentMentorVotesRow[currentProjectKey] || false; 
+            const done = currentMentorVotesRow[currentProjectKey] ? true : false; 
             if (done) voted++;
             
             const btn = document.createElement('div');
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
-            btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
+            
+            // 🌟 הגנה קשיחה: רק אם המיזם ירוק (done) הוא נפתח בלחיצה. אם אפור, הלחיצה חסומה ומחייבת סריקה 🌟
+            if (done) {
+                btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
+            } else {
+                btn.style.cursor = "default";
+            }
             
             if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
         }
@@ -199,7 +197,14 @@ function getFeedbackText(val) {
 
 function renderRatingCategories() {
     categoriesContainer.innerHTML = "";
-    CATEGORIES_DATA.forEach(cat => {
+    
+    // בדיקה האם למיזם הנוכחי כבר יש היסטוריית ציונים שמורה בזיכרון האפליקציה
+    const projectKey = `${currentSelectedProjectNo}_${currentSelectedProjectGender}`;
+    const savedScores = currentMentorVotesRow[projectKey] || [0, 0, 0, 0, 0, 0, 0];
+
+    CATEGORIES_DATA.forEach((cat, index) => {
+        const prefilledValue = savedScores[index]; // טעינת הציון הקיים (או 0 אם חדש)
+        
         const card = document.createElement('div');
         card.className = "category-card-row";
         card.innerHTML = `
@@ -211,7 +216,7 @@ function renderRatingCategories() {
             <button id="lock-btn-${cat.id}" class="unlock-trigger-btn" onclick="toggleSliderLock(${cat.id})">
                 🔒 לחץ לגרירה
             </button>
-            <input type="range" min="0" max="10" value="0" class="full-page-slider" id="slider-${cat.id}" disabled style="pointer-events: none;">
+            <input type="range" min="0" max="10" value="${prefilledValue}" class="full-page-slider" id="slider-${cat.id}" disabled style="pointer-events: none;">
             <div class="manual-controls-row">
                 <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
                 <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
@@ -227,6 +232,11 @@ function renderRatingCategories() {
         slider.addEventListener('touchend', () => lockSliderBack(cat.id));
         slider.addEventListener('mouseup', () => lockSliderBack(cat.id));
         input.oninput = () => updateSync(cat.id, input.value, 'input');
+        
+        // 🌟 החלת הציונים השמורים דינמית על המסך מיד בעת הבנייה 🌟
+        if (prefilledValue > 0) {
+            updateSync(cat.id, prefilledValue, 'init');
+        }
     });
 }
 
@@ -302,31 +312,28 @@ modalCancelBtn.onclick = handleCancelRating;
 ratingBackBtn.onclick = handleCancelRating;
 
 enterBtn.onclick = () => {
-    if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
+    if (!mentorDropdown.value) { showAlert("אנא בחר/י שם מתוך הרשימה!"); return; }
     currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
     showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
 };
 
-// 💾 פונקציית השמירה המלאה והסופית עם עמודת המגדר (Gender) החדשה! 💾
 modalSaveBtn.onclick = function() {
     const scores = []; let sum = 0;
     for (let i = 1; i <= 7; i++) {
         const val = parseInt(document.getElementById(`slider-${i}`).value);
-        if (val === 0) { alert("חובה לדרג את כל הקטגוריות!"); return; }
+        if (val === 0) { showAlert("חובה לדרג את כל הקטגוריות לפני השמירה!"); return; }
         scores.push(val); sum += val;
     }
     modalSaveBtn.innerText = "שומר... ⏳"; modalSaveBtn.disabled = true;
     fetch(APPS_SCRIPT_URL, {
         method: "POST", mode: "no-cors", cache: "no-cache",
         body: JSON.stringify({ 
-            mentorName: currentMentor, 
-            projectNumber: currentSelectedProjectNo, 
-            gender: currentSelectedProjectGender, // שולח 'male' או 'female' לעמודה D בשייטס
+            mentorName: currentMentor, projectNumber: currentSelectedProjectNo, gender: currentSelectedProjectGender,
             cat1: scores[0], cat2: scores[1], cat3: scores[2], cat4: scores[3], cat5: scores[4], cat6: scores[5], cat7: scores[6], 
             totalScore: sum 
         })
     }).then(() => {
-        alert("נשמר בהצלחה!"); 
+        showAlert(`הדירוג עבור מיזם מספר ${currentSelectedProjectNo} נשמר בהצלחה!`);
         modalSaveBtn.innerText = "💾 שמור דירוג והמשך";
         modalSaveBtn.disabled = false; 
         showScreen(lobbyScreen); 
@@ -341,21 +348,13 @@ scanQrBtn.onclick = () => {
         const raw = text.trim().toUpperCase();
         const num = parseInt(raw.replace(/[^\d]/g, ''));
         const gen = raw.startsWith('G') ? 'female' : 'male';
-        
         stopScanner(); 
-        
         const p = rawProjectsData.find(x => x.no === num && x.gender === gen);
-        if (p) {
-            openRatingPage(p.no, p.title, p.creators, p.gender); 
-        } else {
-            openRatingPage(num, `מיזם ${num}`, "לא ידוע", gen);
-        }
+        if (p) { openRatingPage(p.no, p.title, p.creators, p.gender); } else { openRatingPage(num, `מיזם ${num}`, "לא ידוע", gen); }
     });
 };
 
 function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none');
-    } else { scannerModal.style.display = 'none'; }
+    if (html5QrcodeScanner) { html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none'); } else { scannerModal.style.display = 'none'; }
 }
 scannerCloseX.onclick = stopScanner;
