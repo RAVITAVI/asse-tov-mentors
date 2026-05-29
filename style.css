@@ -1,7 +1,6 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 body { background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; width: 100vw; }
 
-/* מבנה בסיסי למסכים */
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background-color: #f0f4f8; }
 .screen.active { display: flex; flex-direction: column; }
 
@@ -11,15 +10,44 @@ body { background-color: #f0f4f8; display: flex; justify-content: center; align-
 #login-screen h1 { font-size: 2.3rem; margin-bottom: 10px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 #login-screen .subtitle { font-size: 1.2rem; margin-bottom: 35px; opacity: 0.9; }
 
-/* כרטיסיית הזדהות */
 .login-card { background-color: white; border-radius: 24px; padding: 35px 25px; width: 90%; max-width: 440px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); text-align: right; color: #333; }
 .login-card label { display: block; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; color: #475569; }
 
-/* רכיב בחירה נפתח */
-.mentor-select { width: 100%; padding: 16px; font-size: 1.15rem; border: 2px solid #cbd5e1; border-radius: 14px; outline: none; background-color: #f8fafc; color: #1e293b; cursor: pointer; transition: border-color 0.2s; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>"); background-repeat: no-repeat; background-position: left 15px center; background-size: 18px; }
-.mentor-select:focus { border-color: #ff9800; box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15); }
+.mentor-select { width: 100%; padding: 16px; font-size: 1.15rem; border: 2px solid #cbd5e1; border-radius: 14px; outline: none; background-color: #f8fafc; color: #1e293b; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>"); background-repeat: no-repeat; background-position: left 15px center; background-size: 18px; }
 
-/* כפתור כניסה */
 .enter-btn { width: 100%; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 16px; font-size: 1.25rem; font-weight: bold; border-radius: 14px; cursor: pointer; margin-top: 25px; box-shadow: 0 6px 20px rgba(245, 124, 0, 0.4); transition: all 0.2s ease; }
 .enter-btn:hover { background: linear-gradient(135deg, #f57c00 0%, #e68a00 100%); transform: translateY(-2px); }
-.enter-btn:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(245, 124, 0, 0.4); }
+
+/* מסך 2: לובי מנטורים ושורת סטטוס עליונה */
+.lobby-header { background-color: #ffffff; width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); position: fixed; top: 0; left: 0; z-index: 100; direction: rtl; }
+.welcome-msg { font-size: 1.15rem; font-weight: bold; color: #1e293b; }
+.welcome-msg span { color: #1e3c72; }
+
+.progress-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; width: 45%; max-width: 220px; }
+.progress-text { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+.progress-bar-bg { width: 100%; height: 8px; background-color: #e2e8f0; border-radius: 10px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); width: 0%; transition: width 0.4s ease; }
+
+/* תוכן הלובי הראשי */
+.lobby-content-wrapper { padding: 95px 20px 30px 20px; width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; direction: rtl; }
+.page-title { font-size: 1.6rem; color: #1e3c72; margin-bottom: 5px; font-weight: bold; text-align: right; width: 100%; max-width: 600px; }
+.page-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 20px; text-align: right; width: 100%; max-width: 600px; line-height: 1.4; }
+
+.scan-main-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 16px; cursor: pointer; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); width: 100%; max-width: 600px; transition: transform 0.2s; }
+.scan-main-btn:active { transform: scale(0.98); }
+
+.gender-section-title { width: 100%; max-width: 600px; font-size: 1.25rem; font-weight: bold; color: #1d4ed8; margin-bottom: 12px; margin-top: 10px; text-align: right; border-bottom: 2px solid #dbeafe; padding-bottom: 5px; }
+.gender-section-title.pink { color: #be185d; border-color: #fce7f3; }
+
+/* גריד כרטיסיות המיזמים */
+.projects-grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 15px; width: 100%; max-width: 600px; padding: 5px; margin-bottom: 25px; }
+.project-grid-button { border-radius: 16px; padding: 18px 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; min-height: 125px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s; }
+.project-grid-button:active { transform: scale(0.96); }
+
+.proj-number { font-size: 1.8rem; font-weight: 800; margin-bottom: 4px; }
+.proj-title { font-size: 0.9rem; font-weight: 600; line-height: 1.3; margin-bottom: 8px; height: 2.6rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.proj-status-label { font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; background-color: rgba(255, 255, 255, 0.4); }
+
+/* סגנונות צבע סטטוס */
+.color-neutral { background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%); color: #475569; border: 1px solid #94a3b8; }
+.color-green { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); color: #166534; border: 1px solid #4ade80; }
