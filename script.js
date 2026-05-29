@@ -23,9 +23,9 @@ const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-// 🔹 קישור הגוגל שיטס וכתובת ה-Apps Script של המנטורים
+// 🔹 קישורי המערכת המעודכנים של המנטורים
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyTj6OuSvDvgfru8VN-9SCwxmciiBZ59Y-aCZeWZLzXV1AgZvTwMdKM2jVgnIG3OSI/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
@@ -119,7 +119,7 @@ function fetchAndDisplayProjects() {
             const lines = text.split(/\r?\n/);
             boysProjectsGrid.innerHTML = "";
             girlsProjectsGrid.innerHTML = "";
-            rawProjectsData = []; // איפוס
+            rawProjectsData = []; 
             
             if (lines.length < 2) return;
 
@@ -135,7 +135,6 @@ function fetchAndDisplayProjects() {
                 const projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
                 if (projectNo) {
-                    // שמירת כל הנתונים כולל מגדר בזיכרון המקומי
                     rawProjectsData.push({ no: projectNo, title: projectTitle, gender: projectGender });
 
                     totalProjectsCount++;
@@ -152,7 +151,6 @@ function fetchAndDisplayProjects() {
                         projectButton.innerHTML = `<div class="proj-number">${projectNo}</div><div class="proj-title">${projectTitle}</div><div class="proj-status-label">טרם דורג</div>`;
                     }
 
-                    // לחיצה ידנית מהלובי מעבירה ישירות את הנתונים הנכונים השמורים באותו כפתור
                     projectButton.onclick = function() {
                         openRatingModal(projectNo, projectTitle, projectGender);
                     };
@@ -225,7 +223,7 @@ function closeRatingModal() {
 modalCancelBtn.onclick = closeRatingModal;
 ratingCloseX.onclick = closeRatingModal;
 
-// כפתור שמור
+// כפתור שמור - שליחת הנתונים ל-Apps Script
 modalSaveBtn.onclick = function() {
     const scores = [];
     let sum = 0;
@@ -246,7 +244,7 @@ modalSaveBtn.onclick = function() {
     const voteData = {
         mentorName: currentMentor,
         projectNumber: currentSelectedProjectNo,
-        gender: currentSelectedProjectGender, // מוסיפים את המגדר לשמירה בשרת
+        gender: currentSelectedProjectGender, 
         cat1: scores[0],
         cat2: scores[1],
         cat3: scores[2],
@@ -293,7 +291,7 @@ enterBtn.onclick = function() {
     fetchMentorVotesAndRenderLobby();
 };
 
-// 📷 הפעלת מצלמת הסורק עם פתרון מוצלב והרמטי לכפל מספרים
+// 📷 הפעלת מצלמת הסורק עם פתרון מגדרי הרמטי ומניעת כפילויות מסוג G ו-B
 scanQrBtn.onclick = function() {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
@@ -305,6 +303,7 @@ scanQrBtn.onclick = function() {
             
             const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
             
+            // הגדרת המגדר בהתאם לאות הראשונה של הברקוד (G = בנות, B = בנים)
             let scannedGender = "male";
             if (rawText.startsWith('G')) {
                 scannedGender = "female";
@@ -312,7 +311,7 @@ scanQrBtn.onclick = function() {
 
             stopScanner();
             
-            // 🌟 התיקון הקריטי: מחפשים בזיכרון התאמה מושלמת גם למספר וגם למגדר במקביל! 🌟
+            // חיפוש חסין כפל מספרים: בודק התאמה מדויקת למספר המיזם ובמקביל למגדר שפוענח מהברקוד
             const foundProj = rawProjectsData.find(p => parseInt(p.no) === scannedProjNo && p.gender === scannedGender);
             
             if (foundProj) {
