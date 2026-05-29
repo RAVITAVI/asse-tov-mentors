@@ -24,7 +24,6 @@ const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-// רכיבי הודעות המודאל הנקיות
 const customAlertModal = document.getElementById('custom-alert-modal');
 const customAlertText = document.getElementById('custom-alert-text');
 const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
@@ -38,7 +37,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ih
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
-let currentMentorVotesRow = {}; // מחזיק מעכשיו את רשימת הציונים המלאה שנמשכה: { projectKey: [cat1, cat2...] }
+let currentMentorVotesRow = {}; // מבנה: { "3_male": [7,8,9,5,6,7,8] } - מחזיק תמיד את הדירוג האחרון ביותר
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
 
@@ -54,7 +53,6 @@ const CATEGORIES_DATA = [
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
 
-// 🌟 פונקציית הודעות נקייה ומעוצבת (מחליפה את ה-alert המיושן) 🌟
 function showAlert(message) {
     customAlertText.innerText = message;
     customAlertModal.style.display = 'flex';
@@ -88,6 +86,14 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
+// 🌟 פונקציית נרמול חכמה: מוודאת שהמגדר יתורגם נכון ל-male/female ללא תלות באיך הוא נכתב בגיליון 🌟
+function normalizeGender(genderStr) {
+    if (!genderStr) return "male";
+    const g = genderStr.trim().toLowerCase();
+    if (g.includes('female') || g.includes('בת') || g.includes('בנות')) return 'female';
+    return 'male';
+}
+
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) { useBackupMentors(); return; }
@@ -119,14 +125,21 @@ function fetchMentorVotesAndRenderLobby() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors_Votes`;
+    
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
         currentMentorVotesRow = {}; 
+        
         for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
-            // 🌟 שומר את מערך הציונים השלם (עמודות E עד K הן אינדקסים 4 עד 10)
+            
             if (columns[1] && columns[1].trim() === currentMentor.trim()) {
-                const projectKey = `${parseInt(columns[2])}_${columns[3].trim().toLowerCase()}`;
+                const normalizedGen = normalizeGender(columns[3]);
+                const projectKey = `${parseInt(columns[2])}_${normalizedGen}`;
+                
+                // 🌟 לוגיקת דריסה כרונולוגית מקומית: מכיוון שאנחנו רצים מלמעלה למטה, 
+                // אם מנטור עדכן מיזם מסוים מספר פעמים, הציון האחרון ביותר תמיד ידרוס ויקבע! 🌟
                 currentMentorVotesRow[projectKey] = [
                     parseInt(columns[4]) || 0, parseInt(columns[5]) || 0, parseInt(columns[6]) || 0,
                     parseInt(columns[7]) || 0, parseInt(columns[8]) || 0, parseInt(columns[9]) || 0,
@@ -159,8 +172,7 @@ function fetchAndDisplayProjects() {
             const pNo = parseInt(cols[1]); if (!pNo) continue;
             
             const pCreators = cols[nameColumnIndex] || "יזמים לא ידועים";
-            let pGender = cols[5] ? cols[5].trim().toLowerCase() : "";
-            if (pGender.includes('female') || pGender.includes('בת') || pGender.includes('בנות')) pGender = 'female'; else pGender = 'male';
+            const pGender = normalizeGender(cols[5]);
             
             rawProjectsData.push({ no: pNo, title: cols[2], creators: pCreators, gender: pGender });
             total++;
@@ -173,11 +185,12 @@ function fetchAndDisplayProjects() {
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
             
-            // 🌟 הגנה קשיחה: רק אם המיזם ירוק (done) הוא נפתח בלחיצה. אם אפור, הלחיצה חסומה ומחייבת סריקה 🌟
+            // 🔒 חסימה קשיחה: רק מיזם ירוק (done) ניתן לפתיחה בלחיצה ישירה. מיזם אפור חסום לחלוטין! 🔒
             if (done) {
                 btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
             } else {
                 btn.style.cursor = "default";
+                btn.style.opacity = "0.9";
             }
             
             if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
@@ -198,12 +211,11 @@ function getFeedbackText(val) {
 function renderRatingCategories() {
     categoriesContainer.innerHTML = "";
     
-    // בדיקה האם למיזם הנוכחי כבר יש היסטוריית ציונים שמורה בזיכרון האפליקציה
     const projectKey = `${currentSelectedProjectNo}_${currentSelectedProjectGender}`;
     const savedScores = currentMentorVotesRow[projectKey] || [0, 0, 0, 0, 0, 0, 0];
 
     CATEGORIES_DATA.forEach((cat, index) => {
-        const prefilledValue = savedScores[index]; // טעינת הציון הקיים (או 0 אם חדש)
+        const prefilledValue = savedScores[index]; // 🌟 טעינה אוטומטית של הניקוד האחרון ביותר שנשמר 🌟
         
         const card = document.createElement('div');
         card.className = "category-card-row";
@@ -233,7 +245,6 @@ function renderRatingCategories() {
         slider.addEventListener('mouseup', () => lockSliderBack(cat.id));
         input.oninput = () => updateSync(cat.id, input.value, 'input');
         
-        // 🌟 החלת הציונים השמורים דינמית על המסך מיד בעת הבנייה 🌟
         if (prefilledValue > 0) {
             updateSync(cat.id, prefilledValue, 'init');
         }
