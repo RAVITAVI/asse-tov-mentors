@@ -132,8 +132,15 @@ function fetchAndDisplayProjects() {
                 
                 const projectNo = parseInt(columns[1]); 
                 const projectTitle = columns[2];       
-                const projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
+                let projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
+                // נרמול ערכי המגדר מהטבלה כדי למנוע בעיות שפה או רווחים
+                if (projectGender.includes('female') || projectGender.includes('בת') || projectGender.includes('בנות')) {
+                    projectGender = 'female';
+                } else {
+                    projectGender = 'male';
+                }
+
                 if (projectNo) {
                     rawProjectsData.push({ no: projectNo, title: projectTitle, gender: projectGender });
 
@@ -291,7 +298,7 @@ enterBtn.onclick = function() {
     fetchMentorVotesAndRenderLobby();
 };
 
-// 📷 הפעלת מצלמת הסורק עם פתרון מגדרי הרמטי ומניעת כפילויות מסוג G ו-B
+// 📷 הפעלת מצלמת הסורק החסינה
 scanQrBtn.onclick = function() {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
@@ -303,7 +310,7 @@ scanQrBtn.onclick = function() {
             
             const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
             
-            // הגדרת המגדר בהתאם לאות הראשונה של הברקוד (G = בנות, B = בנים)
+            // 🔒 קביעת המגדר המוחלטת ישירות מהקוד של הברקוד (G=בנות, B=בנים)
             let scannedGender = "male";
             if (rawText.startsWith('G')) {
                 scannedGender = "female";
@@ -311,13 +318,14 @@ scanQrBtn.onclick = function() {
 
             stopScanner();
             
-            // חיפוש חסין כפל מספרים: בודק התאמה מדויקת למספר המיזם ובמקביל למגדר שפוענח מהברקוד
+            // חיפוש קשיח המצליב מספר ומגדר מנורמל
             const foundProj = rawProjectsData.find(p => parseInt(p.no) === scannedProjNo && p.gender === scannedGender);
             
             if (foundProj) {
                 openRatingModal(foundProj.no, foundProj.title, foundProj.gender);
             } else {
-                openRatingModal(scannedProjNo, "מיזם סרוק", scannedGender);
+                // מנגנון הגנה הרמטי: אם המיזם לא נמצא בטבלה, הוא נפתח עם מספר המיזם והמגדר המוחלט שנקרא מהברקוד!
+                openRatingModal(scannedProjNo, `מיזם מספר ${scannedProjNo}`, scannedGender);
             }
         },
         (errorMessage) => { }
