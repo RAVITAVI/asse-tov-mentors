@@ -95,7 +95,7 @@ function fetchMentorVotesAndRenderLobby() {
         });
 }
 
-// משיכת המיזמים וחלוקה מדויקת לפי הערכים בטבלה שלך (בנים / בנות)
+// 🌟 משיכת המיזמים עם מנגנון איתור עמודות דינמי לפי כותרת
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -109,6 +109,19 @@ function fetchAndDisplayProjects() {
             girlsProjectsGrid.innerHTML = "";
             rawProjectsData = [];
             
+            if (lines.length < 2) return;
+
+            // 🔍 מוצאים את מיקומי העמודות לפי שורת הכותרת (שורה 0)
+            const headers = parseCSVLine(lines[0]);
+            const idxProjectNo = headers.findIndex(h => h.toLowerCase().includes('number') || h.includes('מספר') || h.includes('מיזם'));
+            const idxTitle = headers.findIndex(h => h.toLowerCase().includes('title') || h.includes('שם') || h.includes('יוזמה'));
+            const idxGender = headers.findIndex(h => h.toLowerCase().includes('gender') || h.includes('מגדר') || h.includes('בנים'));
+
+            // הגדרת ברירות מחדל אם משהו לא נמצא במאה אחוז
+            const pNoId = idxProjectNo !== -1 ? idxProjectNo : 1;
+            const pTitleId = idxTitle !== -1 ? idxTitle : 2;
+            const pGenderId = idxGender !== -1 ? idxGender : 4;
+
             let totalProjectsCount = 0;
             let votedProjectsCount = 0;
 
@@ -116,10 +129,9 @@ function fetchAndDisplayProjects() {
                 if (!lines[i].trim()) continue;
                 const columns = parseCSVLine(lines[i]);
                 
-                const projectNo = parseInt(columns[1]);     // עמודה B - Project_Number
-                const projectTitle = columns[2];            // עמודה C - Project_Title
-                const projectCreators = columns[3];          // עמודה D - Project_Creators
-                const projectGender = columns[4] ? columns[4].trim() : ""; // עמודה E - Gender ("בנים" / "בנות")
+                const projectNo = parseInt(columns[pNoId]);     
+                const projectTitle = columns[pTitleId];            
+                const projectGender = columns[pGenderId] ? columns[pGenderId].trim() : ""; 
                 
                 if (projectNo) {
                     totalProjectsCount++;
@@ -144,11 +156,10 @@ function fetchAndDisplayProjects() {
                         }
                     };
 
-                    // 🔷 מיון מדויק לפי הערך בעברית כפי שמופיע בגוגל שיטס שלך
+                    // 🔷 סינון מדויק לחלוטין: בודק אם הערך בעמודת המגדר שווה ל-"בנות"
                     if (projectGender === 'בנות') {
                         girlsProjectsGrid.appendChild(projectButton);
                     } else {
-                        // ברירת מחדל או אם כתוב "בנים" - ייכנס למסלול בנים
                         boysProjectsGrid.appendChild(projectButton);
                     }
                 }
