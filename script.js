@@ -31,7 +31,6 @@ let currentMentorVotesRow = {};
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
 
-// 📜 רשימת הקטגוריות והתיאורים מתוך הפוסטר
 const CATEGORIES_DATA = [
     { id: 1, title: "👥 מנהיגות וצוות", desc: "שיתוף פעולה בפיתוח המיזם הכולל ניהול וחלוקת תפקידים ברורה בה הסטודנט תורם את חלקו מתוך חוזקותיו." },
     { id: 2, title: "🔍 הגדרת הבעיה", desc: "ביצוע מחקר מעמיק; הגדרת קהל היעד, הבנת גורמי הבעיה והבאת נתונים תומכים ומהימנים." },
@@ -127,16 +126,14 @@ function fetchAndDisplayProjects() {
     });
 }
 
-// 🌟 פונקציה לעדכון טקסט משוב מילולי דינמי 🌟
 function getFeedbackText(val) {
     if (val == 0) return "טרם דורג";
-    if (val >= 1 && val <= 3) return "🔴 טעון שיפור";
-    if (val >= 4 && val <= 6) return "🟡 בינוני / בסיסי";
-    if (val >= 7 && val <= 8) return "🟢 טוב מאוד";
-    return "✨ מצוין ויוצא דופן";
+    if (val >= 1 && val <= 3) return "טעון שיפור";
+    if (val >= 4 && val <= 6) return "בינוני / בסיסי";
+    if (val >= 7 && val <= 8) return "טוב מאוד";
+    return "מצוין ויוצא דופן";
 }
 
-// 🔨 יצירת הקטגוריות במסך הדירוג המלא
 function renderRatingCategories() {
     categoriesContainer.innerHTML = "";
     CATEGORIES_DATA.forEach(cat => {
@@ -165,10 +162,8 @@ function renderRatingCategories() {
         `;
         categoriesContainer.appendChild(card);
 
-        // חיבור אירועי עדכון הדדיים
         const slider = card.querySelector(`#slider-${cat.id}`);
         const input = card.querySelector(`#input-${cat.id}`);
-        const feedback = card.querySelector(`#feedback-${cat.id}`);
 
         slider.oninput = () => updateSync(cat.id, slider.value, 'slider');
         input.oninput = () => {
@@ -188,8 +183,18 @@ function updateSync(id, val, source) {
     if (source !== 'slider') slider.value = v;
     if (source !== 'input') input.value = (v === 0) ? "" : v;
 
-    feedback.innerText = (v === 0) ? "טרם דורג" : `${v} | ${getFeedbackText(v)}`;
-    feedback.className = `cat-card-feedback ${v === 0 ? 'unrated' : 'rated'}`;
+    if (v === 0) {
+        feedback.innerText = "טרם דורג";
+        feedback.className = "cat-card-feedback unrated";
+    } else {
+        feedback.innerText = `${v} | ${getFeedbackText(v)}`;
+        feedback.className = "cat-card-feedback rated";
+        
+        if (v <= 3) feedback.className += " low";
+        else if (v <= 6) feedback.className += " mid";
+        else if (v <= 8) feedback.className += " high";
+        else feedback.className += " perfect";
+    }
 }
 
 window.stepValue = function(id, delta) {
@@ -226,7 +231,7 @@ modalSaveBtn.onclick = function() {
 };
 
 enterBtn.onclick = () => {
-    if (!mentorDropdown.value) return alert("בחר שם!");
+    if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
     currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
     showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
 };
