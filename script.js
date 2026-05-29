@@ -59,22 +59,37 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
+// 🌟 תיקון פונקציית טעינת המנטורים לסנכרון מושלם מול ה-HTML 🌟
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
+    
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
-        mentorDropdown.innerHTML = '<option value="">בחר/י את שמך מהרשימה...</option>';
+        // תואם בדיוק לערך ההתחלתי החדש ב-HTML
+        mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
+        
+        let hasMentors = false;
+        let optionsHtml = '<option value="">בחר/י את שמך מהרשימה...</option>';
+
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
             if (columns[1]) {
-                const opt = document.createElement('option');
-                opt.value = columns[1]; opt.innerText = columns[1];
-                mentorDropdown.appendChild(opt);
+                optionsHtml += `<option value="${columns[1]}">${columns[1]}</option>`;
+                hasMentors = true;
             }
         }
+        
+        if (hasMentors) {
+            mentorDropdown.innerHTML = optionsHtml;
+        } else {
+            mentorDropdown.innerHTML = '<option value="">לא נמצאו מנטורים בגיליון</option>';
+        }
+    }).catch(err => {
+        console.error("שגיאה בטעינת מנטורים:", err);
+        mentorDropdown.innerHTML = '<option value="">שגיאה בטעינת הנתונים</option>';
     });
 }
 
@@ -153,7 +168,7 @@ function renderRatingCategories() {
                 <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
                 <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
                 <button class="step-btn plus" onclick="stepValue(${cat.id}, 1)">+</button>
-            </div>
+                </div>
         `;
         categoriesContainer.appendChild(card);
         const slider = card.querySelector(`#slider-${cat.id}`);
@@ -233,7 +248,6 @@ const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
 let html5QrcodeScanner = null;
 
-// 🌟 תיקון פונקציית הסריקה - מעבירה כעת בצורה חלקה למסך הדירוג המלא 🌟
 scanQrBtn.onclick = () => {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
@@ -242,9 +256,8 @@ scanQrBtn.onclick = () => {
         const num = parseInt(raw.replace(/[^\d]/g, ''));
         const gen = raw.startsWith('G') ? 'female' : 'male';
         
-        stopScanner(); // סגירת המצלמה
+        stopScanner(); 
         
-        // מציאת המיזם בזיכרון והעברה למסך הדירוג המלא החדש!
         const p = rawProjectsData.find(x => x.no === num && x.gender === gen);
         if (p) {
             openRatingPage(p.no, p.title, p.creators, p.gender); 
