@@ -19,16 +19,19 @@ const ratingModal = document.getElementById('rating-modal');
 const ratingCloseX = document.getElementById('rating-close-x');
 const modalProjectTitle = document.getElementById('modal-project-title');
 const modalProjectNo = document.getElementById('modal-project-no');
-const modalProjectGender = document.getElementById('modal-project-gender'); // אלמנט המגדר החדש
+const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
+// 🔹 קישור הגוגל שיטס וכתובת ה-Apps Script של המנטורים
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyTj6OuSvDvgfru8VN-9SCwxmciiBZ59Y-aCZeWZLzXV1AgZvTwMdKM2jVgnIG3OSI/exec";
 
 let currentMentor = ""; 
 let rawProjectsData = []; 
 let currentMentorVotesRow = {}; 
 let currentSelectedProjectNo = null;
+let currentSelectedProjectGender = "";
 
 function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
@@ -116,7 +119,7 @@ function fetchAndDisplayProjects() {
             const lines = text.split(/\r?\n/);
             boysProjectsGrid.innerHTML = "";
             girlsProjectsGrid.innerHTML = "";
-            rawProjectsData = [];
+            rawProjectsData = []; 
             
             if (lines.length < 2) return;
 
@@ -132,7 +135,6 @@ function fetchAndDisplayProjects() {
                 const projectGender = columns[5] ? columns[5].trim().toLowerCase() : ""; 
                 
                 if (projectNo) {
-                    // שומרים גם את המגדר המקורי (female/male) בדאטה המקומית
                     rawProjectsData.push({ no: projectNo, title: projectTitle, gender: projectGender });
 
                     totalProjectsCount++;
@@ -150,11 +152,7 @@ function fetchAndDisplayProjects() {
                     }
 
                     projectButton.onclick = function() {
-                        if (isVotedByMe) {
-                            openRatingModal(projectNo, projectTitle, projectGender);
-                        } else {
-                            alert("כדי לדרג את מיזם מספר " + projectNo + " בפעם הראשונה, עליכם לבקר בדוכן הפיזי שלו ולסרוק את הברקוד שעל השולחן! 📷");
-                        }
+                        openRatingModal(projectNo, projectTitle, projectGender);
                     };
 
                     if (projectGender === 'female') {
@@ -172,13 +170,13 @@ function fetchAndDisplayProjects() {
         }).catch(err => console.error("שגיאה בטעינת מיזמים:", err));
 }
 
-// 🌟 פונקציה לפתיחת חלון הדירוג עם המגדר המעודכן
+// פונקציה לפתיחת חלון הדירוג
 function openRatingModal(projectNo, projectTitle, projectGender) {
     currentSelectedProjectNo = projectNo;
+    currentSelectedProjectGender = projectGender;
     modalProjectNo.innerText = "מיזם מספר " + projectNo;
     modalProjectTitle.innerText = projectTitle;
 
-    // 🔷 קביעת הטקסט והצבע של תגית המגדר בחלון
     if (projectGender === 'female') {
         modalProjectGender.innerText = "מיזם בנות";
         modalProjectGender.style.backgroundColor = "#fce7f3";
@@ -189,7 +187,6 @@ function openRatingModal(projectNo, projectTitle, projectGender) {
         modalProjectGender.style.color = "#1d4ed8";
     }
 
-    // מחזירים את כל 7 הסליידרים למצב "טרם דורג" (0)
     for (let i = 1; i <= 7; i++) {
         const slider = document.getElementById(`slider-${i}`);
         const preview = document.getElementById(`val-preview-${i}`);
@@ -201,7 +198,7 @@ function openRatingModal(projectNo, projectTitle, projectGender) {
     ratingModal.style.display = 'flex';
 }
 
-// חיבור אירוע עדכון חי לכל 7 הסליידרים
+// חיבור אירוע עדכון חי לסליידרים
 for (let i = 1; i <= 7; i++) {
     const slider = document.getElementById(`slider-${i}`);
     const preview = document.getElementById(`val-preview-${i}`);
@@ -218,69 +215,40 @@ for (let i = 1; i <= 7; i++) {
     };
 }
 
+// ❌ כפתור בטל (Cancel) - סוגר ומאפס מבלי לשנות דבר
 function closeRatingModal() {
     ratingModal.style.display = 'none';
     currentSelectedProjectNo = null;
+    currentSelectedProjectGender = "";
 }
 modalCancelBtn.onclick = closeRatingModal;
 ratingCloseX.onclick = closeRatingModal;
 
+// 💾 כפתור שמור (Save) - אוסף את הציונים ושולח לגוגל שיטס
 modalSaveBtn.onclick = function() {
+    const scores = [];
+    let sum = 0;
+
+    // ולידציה - בודק שכל 7 הקטגוריות דורגו
     for (let i = 1; i <= 7; i++) {
         const val = parseInt(document.getElementById(`slider-${i}`).value);
         if (val === 0) {
             alert("חובה להעניק ציון לכל 7 הקטגוריות לפני השמירה!");
             return;
         }
+        scores.push(val);
+        sum += val;
     }
-    alert("כל הנתונים תקינים! כעת נגדיר מה כפתורי שמור ובטל עושים.");
-};
 
-loadMentorsFromServer();
+    modalSaveBtn.innerText = "שומר דירוג... ⏳";
+    modalSaveBtn.disabled = true;
 
-enterBtn.onclick = function() {
-    const selectedMentor = mentorDropdown.value;
-    if (selectedMentor === "") {
-        alert("אנא בחר/י את שמך מתוך הרשימה לפני ההמשך!");
-        return;
-    }
-    currentMentor = selectedMentor; 
-    userDisplayName.innerText = currentMentor; 
-    showScreen(lobbyScreen);
-    fetchMentorVotesAndRenderLobby();
-};
-
-// הפעלת מצלמת הסורק
-scanQrBtn.onclick = function() {
-    scannerModal.style.display = 'flex';
-    html5QrcodeScanner = new Html5Qrcode("qr-reader");
-    html5QrcodeScanner.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => { 
-            const rawText = decodedText.trim().toUpperCase();
-            const scannedProjNo = parseInt(rawText.replace(/[^\d]/g, '')); 
-
-            stopScanner();
-            
-            const foundProj = rawProjectsData.find(p => p.no === scannedProjNo);
-            if (foundProj) {
-                openRatingModal(foundProj.no, foundProj.title, foundProj.gender);
-            } else {
-                openRatingModal(scannedProjNo, "מיזם מסורק", "male");
-            }
-        },
-        (errorMessage) => { }
-    ).catch(err => {
-        console.error(err);
-        alert("לא ניתן לגשת למצלמה. ודאו שאישרתם הרשאת מצלמה בדפדפן.");
-        scannerModal.style.display = 'none';
-    });
-};
-
-function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => { scannerModal.style.display = 'none'; }).catch(err => console.error(err));
-    } else { scannerModal.style.display = 'none'; }
-}
-scannerCloseX.onclick = stopScanner;
+    // בניית האובייקט שיישלח ל-Apps Script במכה אחת
+    const voteData = {
+        mentorName: currentMentor,
+        projectNumber: currentSelectedProjectNo,
+        cat1: scores[0],
+        cat2: scores[1],
+        cat3: scores[2],
+        cat4: scores[3],
+        cat5: scores[4],
