@@ -95,7 +95,7 @@ function fetchMentorVotesAndRenderLobby() {
         });
 }
 
-// משיכת המיזמים וחלוקה חסינה למגדר (עברית ואנגלית)
+// משיכת המיזמים וחלוקה מדויקת לפי הערכים בטבלה שלך (בנים / בנות)
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -116,10 +116,10 @@ function fetchAndDisplayProjects() {
                 if (!lines[i].trim()) continue;
                 const columns = parseCSVLine(lines[i]);
                 
-                const projectNo = parseInt(columns[1]);     
-                const projectTitle = columns[2];  
-                const projectCreators = columns[3]; 
-                const projectGender = columns[4] ? columns[4].trim().toLowerCase() : "";   
+                const projectNo = parseInt(columns[1]);     // עמודה B - Project_Number
+                const projectTitle = columns[2];            // עמודה C - Project_Title
+                const projectCreators = columns[3];          // עמודה D - Project_Creators
+                const projectGender = columns[4] ? columns[4].trim() : ""; // עמודה E - Gender ("בנים" / "בנות")
                 
                 if (projectNo) {
                     totalProjectsCount++;
@@ -144,10 +144,11 @@ function fetchAndDisplayProjects() {
                         }
                     };
 
-                    // 🌟 מנגנון מיון חסין: בודק גם אנגלית וגם עברית
-                    if (projectGender === 'female' || projectGender === 'female' || projectGender.includes('בת') || projectGender.includes('בנות')) {
+                    // 🔷 מיון מדויק לפי הערך בעברית כפי שמופיע בגוגל שיטס שלך
+                    if (projectGender === 'בנות') {
                         girlsProjectsGrid.appendChild(projectButton);
                     } else {
+                        // ברירת מחדל או אם כתוב "בנים" - ייכנס למסלול בנים
                         boysProjectsGrid.appendChild(projectButton);
                     }
                 }
@@ -174,7 +175,7 @@ enterBtn.onclick = function() {
     fetchMentorVotesAndRenderLobby();
 };
 
-// 🌟 הפעלה אמיתית של מצלמת הסורק
+// הפעלת מצלמת הסורק
 scanQrBtn.onclick = function() {
     scannerModal.style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
