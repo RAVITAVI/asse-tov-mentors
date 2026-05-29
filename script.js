@@ -59,37 +59,41 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
-// 🌟 תיקון פונקציית טעינת המנטורים לסנכרון מושלם מול ה-HTML 🌟
+// 🌟 פונקציית טעינת מנטורים דורסנית וחסינת באגים 🌟
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
     
+    // ניקוי מיידי לטקסט זמני כדי לוודא שיש תגובה ויזואלית
+    mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
+    
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
-        // תואם בדיוק לערך ההתחלתי החדש ב-HTML
-        mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
         
-        let hasMentors = false;
+        // בנייה מחדש לחלוטין של תוכן התיבה
         let optionsHtml = '<option value="">בחר/י את שמך מהרשימה...</option>';
+        let count = 0;
 
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
-            if (columns[1]) {
-                optionsHtml += `<option value="${columns[1]}">${columns[1]}</option>`;
-                hasMentors = true;
+            // עמודה B היא שם המנטור (אינדקס 1)
+            if (columns[1] && columns[1].trim() !== "") {
+                optionsHtml += `<option value="${columns[1].trim()}">${columns[1].trim()}</option>`;
+                count++;
             }
         }
         
-        if (hasMentors) {
+        // הזרקה סופית של כל האופציות שנמצאו
+        if (count > 0) {
             mentorDropdown.innerHTML = optionsHtml;
         } else {
-            mentorDropdown.innerHTML = '<option value="">לא נמצאו מנטורים בגיליון</option>';
+            mentorDropdown.innerHTML = '<option value="">לא נמצאו שמות מנטורים בגיליון</option>';
         }
     }).catch(err => {
-        console.error("שגיאה בטעינת מנטורים:", err);
-        mentorDropdown.innerHTML = '<option value="">שגיאה בטעינת הנתונים</option>';
+        console.error("שגיאה במשיכת מנטורים מהשיטס:", err);
+        mentorDropdown.innerHTML = '<option value="">שגיאה בחיבור לגוגל שיטס</option>';
     });
 }
 
@@ -168,7 +172,7 @@ function renderRatingCategories() {
                 <button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button>
                 <input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?">
                 <button class="step-btn plus" onclick="stepValue(${cat.id}, 1)">+</button>
-                </div>
+            </div>
         `;
         categoriesContainer.appendChild(card);
         const slider = card.querySelector(`#slider-${cat.id}`);
@@ -273,4 +277,6 @@ function stopScanner() {
     } else { scannerModal.style.display = 'none'; }
 }
 scannerCloseX.onclick = stopScanner;
+
+// הפעלה ראשונית
 loadMentorsFromServer();
