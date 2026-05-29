@@ -7,7 +7,7 @@ body { background-color: #f0f4f8; display: flex; justify-content: center; align-
 /* מסך פתיחה */
 #login-screen { background: linear-gradient(135deg, #16305b 0%, #2a5298 100%); color: white; text-align: center; padding: 20px; justify-content: center; align-items: center; }
 #login-screen .logo-square { width: 150px; height: auto; border-radius: 16px; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); background-color: white; padding: 6px; }
-#login-screen h1 { font-size: 2.3rem; margin-bottom: 10px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+#opening-screen h1 { font-size: 2.3rem; margin-bottom: 10px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 #login-screen .subtitle { font-size: 1.2rem; margin-bottom: 35px; opacity: 0.9; }
 
 .login-card { background-color: white; border-radius: 24px; padding: 35px 25px; width: 90%; max-width: 440px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); text-align: right; color: #333; }
@@ -18,7 +18,7 @@ body { background-color: #f0f4f8; display: flex; justify-content: center; align-
 .enter-btn { width: 100%; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 16px; font-size: 1.25rem; font-weight: bold; border-radius: 14px; cursor: pointer; margin-top: 25px; box-shadow: 0 6px 20px rgba(245, 124, 0, 0.4); transition: all 0.2s ease; }
 .enter-btn:hover { background: linear-gradient(135deg, #f57c00 0%, #e68a00 100%); transform: translateY(-2px); }
 
-/* מסך 2: לובי מנטורים ושורת סטטוס עליונה */
+/* לובי מנטורים ושורת סטטוס עליונה */
 .lobby-header { background-color: #ffffff; width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); position: fixed; top: 0; left: 0; z-index: 100; direction: rtl; }
 .welcome-msg { font-size: 1.15rem; font-weight: bold; color: #1e293b; }
 .welcome-msg span { color: #1e3c72; }
@@ -28,7 +28,7 @@ body { background-color: #f0f4f8; display: flex; justify-content: center; align-
 .progress-bar-bg { width: 100%; height: 8px; background-color: #e2e8f0; border-radius: 10px; overflow: hidden; }
 .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); width: 0%; transition: width 0.4s ease; }
 
-/* תוכן הלובי הראשי */
+/* תוכן הלובי */
 .lobby-content-wrapper { padding: 95px 20px 30px 20px; width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; direction: rtl; }
 .page-title { font-size: 1.6rem; color: #1e3c72; margin-bottom: 5px; font-weight: bold; text-align: right; width: 100%; max-width: 600px; }
 .page-subtitle { font-size: 0.95rem; color: #475569; margin-bottom: 20px; text-align: right; width: 100%; max-width: 600px; line-height: 1.4; }
@@ -39,7 +39,6 @@ body { background-color: #f0f4f8; display: flex; justify-content: center; align-
 .gender-section-title { width: 100%; max-width: 600px; font-size: 1.25rem; font-weight: bold; color: #1d4ed8; margin-bottom: 12px; margin-top: 10px; text-align: right; border-bottom: 2px solid #dbeafe; padding-bottom: 5px; }
 .gender-section-title.pink { color: #be185d; border-color: #fce7f3; }
 
-/* גריד כרטיסיות המיזמים */
 .projects-grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 15px; width: 100%; max-width: 600px; padding: 5px; margin-bottom: 25px; }
 .project-grid-button { border-radius: 16px; padding: 18px 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; min-height: 125px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: all 0.2s; }
 .project-grid-button:active { transform: scale(0.96); }
@@ -48,6 +47,17 @@ body { background-color: #f0f4f8; display: flex; justify-content: center; align-
 .proj-title { font-size: 0.9rem; font-weight: 600; line-height: 1.3; margin-bottom: 8px; height: 2.6rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .proj-status-label { font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; background-color: rgba(255, 255, 255, 0.4); }
 
-/* סגנונות צבע סטטוס */
 .color-neutral { background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%); color: #475569; border: 1px solid #94a3b8; }
 .color-green { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); color: #166534; border: 1px solid #4ade80; }
+
+/* חלונות קופצים Modals */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 99999; padding: 20px; }
+.modal-card { background-color: white; width: 100%; max-width: 450px; border-radius: 24px; padding: 30px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: right; position: relative; }
+.modal-close-x { position: absolute; top: 20px; left: 20px; background: #f1f5f9; border: none; font-size: 1.2rem; font-weight: bold; color: #64748b; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+.modal-header-popup { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
+.modal-header-popup h3 { font-size: 1.3rem; color: #16305b; }
+.modal-body { font-size: 1.05rem; color: #334155; line-height: 1.6; }
+
+.scanner-card { border-radius: 24px; width: 100%; max-width: 400px; }
+#qr-reader__dashboard { display: none !important; } 
+#qr-reader video { border-radius: 12px; object-fit: cover; }
