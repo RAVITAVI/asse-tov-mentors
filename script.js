@@ -1,3 +1,8 @@
+// 🌟 פונקציית טעינה ראשונית חסינת קריסות - הדבר הראשון שרץ באפליקציה! 🌟
+document.addEventListener("DOMContentLoaded", () => {
+    loadMentorsFromServer();
+});
+
 const loginScreen = document.getElementById('login-screen');
 const lobbyScreen = document.getElementById('lobby-screen');
 const ratingScreen = document.getElementById('rating-screen'); 
@@ -18,7 +23,7 @@ const modalProjectCreations = document.getElementById('modal-project-creators');
 const modalProjectNo = document.getElementById('modal-project-no');
 const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
-const modalCancelBtn = document.getElementById('modal-cancel-btn'); // כפתור הביטול החדש
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
 const scannerModal = document.getElementById('scanner-modal');
 const scannerCloseX = document.getElementById('scanner-close-x');
@@ -33,6 +38,9 @@ let currentMentorVotesRow = {};
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
 
+// 📊 רשת ביטחון מקומית: שמות המנטורים לגיבוי מיידי אם האינטרנט באולם קורס 📊
+const BACKUP_MENTORS = ["רבית אביטן", "מנטור גיבוי 1", "מנטור גיבוי 2", "מנטור גיבוי 3"];
+
 const CATEGORIES_DATA = [
     { id: 1, title: "👥 מנהיגות וצוות", desc: "שיתוף פעולה בפיתוח המיזם הכולל ניהול וחלוקת תפקידים ברורה בה הסטודנט תורם את חלקו מתוך חוזקותיו." },
     { id: 2, title: "🔍 הגדרת הבעיה", desc: "ביצוע מחקר מעמיק; הגדרת קהל היעד, הבנת גורמי הבעיה והבאת נתונים תומכים ומהימנים." },
@@ -42,12 +50,6 @@ const CATEGORIES_DATA = [
     { id: 6, title: "🌍 אימפקט ותרומה", desc: "פוטנציאל השינוי שהמיזם יכול לייצר בעולם (חברתי/סביבתי/לימודי)." },
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
-
-window.addEventListener('touchstart', function(e) {
-    if (e.touches.length !== 1) return;
-    const scrollY = window.scrollY || document.documentElement.scrollTop;
-    if (scrollY === 0 && e.touches[0].clientY > 0) { }
-}, { passive: true });
 
 function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
@@ -72,10 +74,11 @@ function parseCSVLine(line) {
 
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!matches || !matches[1]) return;
+    if (!matches || !matches[1]) {
+        useBackupMentors();
+        return;
+    }
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
-    
-    mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
     
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
@@ -94,12 +97,20 @@ function loadMentorsFromServer() {
         if (count > 0) {
             mentorDropdown.innerHTML = optionsHtml;
         } else {
-            mentorDropdown.innerHTML = '<option value="">לא נמצאו שמות מנטורים בגיליון</option>';
+            useBackupMentors();
         }
     }).catch(err => {
-        console.error("שגיאה במשיכת מנטורים:", err);
-        mentorDropdown.innerHTML = '<option value="">שגיאה בחיבור לגוגל שיטס</option>';
+        console.error("שגיאה, מפעיל רשימת גיבוי מקומית:", err);
+        useBackupMentors();
     });
+}
+
+function useBackupMentors() {
+    let optionsHtml = '<option value="">בחר/י את שמך מהרשימה (מצב גיבוי)...</option>';
+    BACKUP_MENTORS.forEach(name => {
+        optionsHtml += `<option value="${name}">${name}</option>`;
+    });
+    mentorDropdown.innerHTML = optionsHtml;
 }
 
 function fetchMentorVotesAndRenderLobby() {
@@ -157,14 +168,6 @@ function fetchAndDisplayProjects() {
         progressCount.innerText = `${voted}/${total}`;
         progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
     });
-}
-
-function getFeedbackText(val) {
-    if (val == 0) return "טרם דורג";
-    if (val >= 1 && val <= 3) return "טעון שיפור";
-    if (val >= 4 && val <= 6) return "בינוני / בסיסי";
-    if (val >= 7 && val <= 8) return "טוב מאוד";
-    return "מצוין ויוצא דופן";
 }
 
 function renderRatingCategories() {
@@ -260,19 +263,16 @@ function openRatingPage(pNo, pTitle, pCreators, pGender) {
     modalProjectGender.className = `gender-badge ${pGender}`;
     renderRatingCategories();
     showScreen(ratingScreen);
-    
     ratingScreen.scrollTop = 0;
-    window.scrollTo(0, 0); 
 }
 
-// ❌ פונקציית כפתור בטל וחזור ללובי - מחזירה בצורה נקייה ללא שמירה ❌
 function handleCancelRating() {
     showScreen(lobbyScreen);
     currentSelectedProjectNo = null;
     currentSelectedProjectGender = "";
 }
 modalCancelBtn.onclick = handleCancelRating;
-ratingBackBtn.onclick = handleCancelRating; // חץ החזרה העליון מתפקד גם הוא כביטול
+ratingBackBtn.onclick = handleCancelRating;
 
 enterBtn.onclick = () => {
     if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
@@ -322,5 +322,3 @@ function stopScanner() {
     } else { scannerModal.style.display = 'none'; }
 }
 scannerCloseX.onclick = stopScanner;
-
-loadMentorsFromServer();
