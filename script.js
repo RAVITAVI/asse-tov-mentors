@@ -19,6 +19,10 @@ const modalProjectNo = document.getElementById('modal-project-no');
 const modalProjectGender = document.getElementById('modal-project-gender');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 
+const scannerModal = document.getElementById('scanner-modal');
+const scannerCloseX = document.getElementById('scanner-close-x');
+let html5QrcodeScanner = null;
+
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
 
@@ -59,40 +63,34 @@ function parseCSVLine(line) {
     return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
-// 🌟 פונקציית טעינת מנטורים דורסנית וחסינת באגים 🌟
 function loadMentorsFromServer() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
     
-    // ניקוי מיידי לטקסט זמני כדי לוודא שיש תגובה ויזואלית
     mentorDropdown.innerHTML = '<option value="">טוען רשימת מנטורים...</option>';
     
     fetch(csvUrl).then(r => r.text()).then(text => {
         const lines = text.split(/\r?\n/);
-        
-        // בנייה מחדש לחלוטין של תוכן התיבה
         let optionsHtml = '<option value="">בחר/י את שמך מהרשימה...</option>';
         let count = 0;
 
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
-            // עמודה B היא שם המנטור (אינדקס 1)
             if (columns[1] && columns[1].trim() !== "") {
                 optionsHtml += `<option value="${columns[1].trim()}">${columns[1].trim()}</option>`;
                 count++;
             }
         }
         
-        // הזרקה סופית של כל האופציות שנמצאו
         if (count > 0) {
             mentorDropdown.innerHTML = optionsHtml;
         } else {
             mentorDropdown.innerHTML = '<option value="">לא נמצאו שמות מנטורים בגיליון</option>';
         }
     }).catch(err => {
-        console.error("שגיאה במשיכת מנטורים מהשיטס:", err);
+        console.error("שגיאה במשיכת מנטורים:", err);
         mentorDropdown.innerHTML = '<option value="">שגיאה בחיבור לגוגל שיטס</option>';
     });
 }
@@ -223,6 +221,15 @@ function openRatingPage(pNo, pTitle, pCreators, pGender) {
     window.scrollTo(0, 0); 
 }
 
+// חיבור אירועים לכפתורים
+enterBtn.onclick = () => {
+    if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
+    currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
+    showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
+};
+
+ratingBackBtn.onclick = () => showScreen(lobbyScreen);
+
 modalSaveBtn.onclick = function() {
     const scores = []; let sum = 0;
     for (let i = 1; i <= 7; i++) {
@@ -239,18 +246,6 @@ modalSaveBtn.onclick = function() {
         modalSaveBtn.disabled = false; showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
     });
 };
-
-enterBtn.onclick = () => {
-    if (!mentorDropdown.value) return alert("אנא בחר/י שם מתוך הרשימה!");
-    currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
-    showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
-};
-
-ratingBackBtn.onclick = () => showScreen(lobbyScreen);
-
-const scannerModal = document.getElementById('scanner-modal');
-const scannerCloseX = document.getElementById('scanner-close-x');
-let html5QrcodeScanner = null;
 
 scanQrBtn.onclick = () => {
     scannerModal.style.display = 'flex';
@@ -278,5 +273,5 @@ function stopScanner() {
 }
 scannerCloseX.onclick = stopScanner;
 
-// הפעלה ראשונית
+// 🌟 הפעלה בשורה האחרונה בהחלט - רק אחרי שכל הפונקציות הוגדרו בצורה מלאה ומאובטחת בסמארטפונים
 loadMentorsFromServer();
