@@ -95,7 +95,7 @@ function fetchMentorVotesAndRenderLobby() {
         });
 }
 
-// 🌟 משיכת המיזמים עם מנגנון איתור עמודות דינמי לפי כותרת
+// משיכת המיזמים וחלוקה חסינה למסלולים
 function fetchAndDisplayProjects() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
@@ -111,13 +111,12 @@ function fetchAndDisplayProjects() {
             
             if (lines.length < 2) return;
 
-            // 🔍 מוצאים את מיקומי העמודות לפי שורת הכותרת (שורה 0)
+            // מוצאים את מיקומי העמודות לפי שורת הכותרת
             const headers = parseCSVLine(lines[0]);
             const idxProjectNo = headers.findIndex(h => h.toLowerCase().includes('number') || h.includes('מספר') || h.includes('מיזם'));
             const idxTitle = headers.findIndex(h => h.toLowerCase().includes('title') || h.includes('שם') || h.includes('יוזמה'));
-            const idxGender = headers.findIndex(h => h.toLowerCase().includes('gender') || h.includes('מגדר') || h.includes('בנים'));
+            const idxGender = headers.findIndex(h => h.toLowerCase().includes('gender') || h.includes('מגדר') || h.includes('בנים') || h.includes('בנות'));
 
-            // הגדרת ברירות מחדל אם משהו לא נמצא במאה אחוז
             const pNoId = idxProjectNo !== -1 ? idxProjectNo : 1;
             const pTitleId = idxTitle !== -1 ? idxTitle : 2;
             const pGenderId = idxGender !== -1 ? idxGender : 4;
@@ -156,8 +155,8 @@ function fetchAndDisplayProjects() {
                         }
                     };
 
-                    // 🔷 סינון מדויק לחלוטין: בודק אם הערך בעמודת המגדר שווה ל-"בנות"
-                    if (projectGender === 'בנות') {
+                    // 🌟 בדיקה חסינת רווחים ותווים נסתרים
+                    if (projectGender.includes('בנות')) {
                         girlsProjectsGrid.appendChild(projectButton);
                     } else {
                         boysProjectsGrid.appendChild(projectButton);
