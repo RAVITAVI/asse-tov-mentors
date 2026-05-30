@@ -3,8 +3,8 @@
    מנוע האפליקציה המלא - גרסה 7.0 (כולל פאנל אדמין, אוסקר ודאשבורד שקיפות)
    ========================================================================== */
 
-// 🌐 הגדרת כתובת ה-API של ה-Google Web App שלך
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzV8_9Lz0LhFmx3WpxV6WbM8_x_YOUR_ACTUAL_ID/exec"; 
+// 🌐 הגדרת כתובת ה-API של ה-Google Web App שלך (מעודכן ומסונכרן)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec"; 
 
 // 🗂️ מערכי הנתונים הגלובליים באפליקציה
 let mentorsList = [];
@@ -53,7 +53,7 @@ function fetchInitialData() {
         })
         .catch(err => {
             console.error("שגיאה בטעינת נתונים ראשוניים:", err);
-            showCustomAlert("חלקה שגיאה בתקשורת עם השרת. אנא רענני את הדף.");
+            showCustomAlert("חלה שגיאה בתקשורת עם השרת. אנא ודאי שה-Web App מאושר לגישת Anyone בגוגל שייטס.");
         });
 }
 
@@ -79,7 +79,7 @@ function handleSystemStatusChange(newStatus) {
         showCustomAlert("⚠️ שים/י לב! השפיטה והדירוג יינעלו בעוד כ-5 דקות בדיוק. אנא סיימו לשמור את המיזמים הנוכחיים שלכם!");
     } else if (currentSystemStatus === "OFF") {
         showCustomAlert("🛑 זמן השיפוט הסתיים הרמטית! המערכת ננעלה ולא ניתן להזין או לעדכן דירוגים נוספים. תודה על השתתפותך.");
-        // אם המנטור באמצע מסך דירוג, נזרוק אותו ללובי החסום
+        // אם המנטור באמצע מסך דירוג, נחזיר אותו ללובי החסום
         if (document.getElementById("rating-screen").classList.contains("active")) {
             switchScreen("lobby-screen");
         }
@@ -138,7 +138,6 @@ function refreshMentorLobby() {
         })
         .catch(err => {
             console.error(err);
-            // הגנת רשת - אם נכשל, נבנה רשת נקייה
             buildProjectsGrid([]);
             switchScreen("lobby-screen");
         });
@@ -276,19 +275,18 @@ function saveCurrentProjectRatings() {
         payload[cat.id] = selected.value;
     }
 
-    // הצגת מצב רוחב פס/טעינה קל
+    // הצגת מצב טעינה
     document.getElementById("modal-save-btn").disabled = true;
     document.getElementById("modal-save-btn").textContent = "שומר ומסנכרן...";
 
-    // שליחה ב-POST אל ה-Google Web App
+    // שליחה אל ה-Google Web App
     fetch(SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors", // למניעת בעיות CORS במובייל
+        mode: "no-cors", 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
     })
     .then(() => {
-        // מאחר ומשתמשים ב-no-cors, הדפדפן לא מחזיר תשובה קריאה, אך השליחה מתבצעת. נניח הצלחה.
         setTimeout(() => {
             document.getElementById("modal-save-btn").disabled = false;
             document.getElementById("modal-save-btn").textContent = "💾 שמור דירוג והמשך";
@@ -307,13 +305,11 @@ function saveCurrentProjectRatings() {
 function openBarcodeScanner() {
     document.getElementById("scanner-modal").classList.add("active");
     
-    // יצירת השירות של הברקוד
     html5QrScanner = new Html5Qrcode("qr-reader");
-    
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
     html5QrScanner.start(
-        { facingMode: "environment" }, // מצלמה אחורית
+        { facingMode: "environment" }, 
         config,
         onQrCodeSuccess,
         onQrCodeError
@@ -324,9 +320,7 @@ function openBarcodeScanner() {
     });
 }
 
-// פונקציית הצלחה בסריקת ברקוד
 function onQrCodeSuccess(decodedText) {
-    // נניח שהברקוד מכיל רק את מספר המיזם (למשל: "14")
     const projectId = String(decodedText).trim();
     const foundProject = projectsList.find(p => String(p.id) === projectId);
     
@@ -340,7 +334,7 @@ function onQrCodeSuccess(decodedText) {
 }
 
 function onQrCodeError(err) {
-    // שגיאות סריקה קטנות קורות בכל פריים, נתעלם כדי לא להציף
+    // התעלמות משגיאות פריים רגעיות בסריקה
 }
 
 function closeBarcodeScanner() {
@@ -352,7 +346,7 @@ function closeBarcodeScanner() {
     }
 }
 
-// 🚪 ניווט חלקה בין מסכים
+// 🚪 ניווט בין מסכים
 function switchScreen(screenId) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(screenId).classList.add("active");
@@ -397,17 +391,13 @@ function loadAdminPanelData() {
             rawVotesList = data.allVotes || [];
             currentSystemStatus = data.systemStatus || "ON";
             
-            // עדכון כפתורי ה-Toggle של הנעילה
             updateToggleButtonsUI();
 
-            // עדכון נתונים מספריים
             document.getElementById("admin-total-votes").textContent = rawVotesList.length;
             
-            // חישוב כמות שופטים פעילים ייחודיים
             const uniqueJudges = [...new Set(rawVotesList.map(v => v.mentor))];
             document.getElementById("admin-active-judges").textContent = uniqueJudges.length;
 
-            // בניית רשימת ההספק של המנטורים
             renderJudgesProgressList(uniqueJudges);
 
             switchScreen("admin-screen");
@@ -421,14 +411,12 @@ function closeAdminScreen() {
     switchScreen("login-screen");
 }
 
-// עדכון נראות כפתורי הנעילה בחמ"ל
 function updateToggleButtonsUI() {
     document.getElementById("status-on-btn").className = "status-toggle-btn" + (currentSystemStatus === "ON" ? " active-on" : "");
     document.getElementById("status-warn-btn").className = "status-toggle-btn" + (currentSystemStatus === "WARN" ? " active-warn" : "");
     document.getElementById("status-off-btn").className = "status-toggle-btn" + (currentSystemStatus === "OFF" ? " active-off" : "");
 }
 
-// שינוי סטטוס מערכת ושמירתו בגוגל שייטס
 function setSystemStatus(status) {
     currentSystemStatus = status;
     updateToggleButtonsUI();
@@ -441,7 +429,6 @@ function setSystemStatus(status) {
     });
 }
 
-// רינדור רשימת המנטורים וההספק שלהם
 function renderJudgesProgressList(uniqueJudges) {
     const container = document.getElementById("admin-judges-list");
     container.innerHTML = "";
@@ -451,7 +438,6 @@ function renderJudgesProgressList(uniqueJudges) {
         return;
     }
 
-    // ספירת קולות לכל שופט
     let judgeCounts = {};
     uniqueJudges.forEach(j => judgeCounts[j] = 0);
     rawVotesList.forEach(v => { if(judgeCounts[v.mentor] !== undefined) judgeCounts[v.mentor]++; });
@@ -467,12 +453,11 @@ function renderJudgesProgressList(uniqueJudges) {
     });
 }
 
-
 /* ==========================================================================
    🏆 מנוע האוסקר המתמטי המלא וחוקי חסימת כפל זכיות
    ========================================================================== */
 
-let processedProjectsSummary = []; // ישמש גם לטבלת השקיפות המלאה
+let processedProjectsSummary = []; 
 
 function calculateOscarResults() {
     if (rawVotesList.length === 0) {
@@ -480,7 +465,7 @@ function calculateOscarResults() {
         return;
     }
 
-    // שלב 1: עיבוד ראשוני וחישוב ממוצעים לכל מיזם בכל קטגוריה וכללי
+    // שלב 1: חישוב ממוצעים לכל מיזם בכל קטגוריה וכללי
     processedProjectsSummary = projectsList.map(project => {
         const projectVotes = rawVotesList.filter(v => String(v.projectId) === String(project.id));
         const numJudges = projectVotes.length;
@@ -498,7 +483,6 @@ function calculateOscarResults() {
             sumOfAllAverages += averages[cat.id];
         });
 
-        // ממוצע כללי משוקלל (Total Score)
         const totalScore = CRITERIA_CATEGORIES.length > 0 ? (sumOfAllAverages / CRITERIA_CATEGORIES.length) : 0;
 
         return {
@@ -509,7 +493,7 @@ function calculateOscarResults() {
             numJudges: numJudges,
             averages: averages,
             totalScore: totalScore,
-            awardsWon: [] // רשימת הזכיות שייקלטו כאן
+            awardsWon: [] 
         };
     });
 
@@ -517,14 +501,12 @@ function calculateOscarResults() {
     let blockedBoysIds = [];
     let blockedGirlsIds = [];
 
-    // שלב 3: מציאת "מיזם השנה - האלוף הכללי" (פתוח לחלוטין, ללא הפרדת מגדר וללא חסימות)
-    // מי שיש לו את ה-Total Score הגבוה ביותר באולם
-    let grandChampion = null;
+    // שלב 3: מציאת "מיזם השנה - האלוף הכללי" (על בסיס הציון הכללי הגבוה ביותר)
     let maxGrandScore = -1;
     let grandTieList = [];
 
     processedProjectsSummary.forEach(p => {
-        if (p.numJudges === 0) return; // לא נשפוט מי שלא דורג
+        if (p.numJudges === 0) return; 
         if (p.totalScore > maxGrandScore) {
             maxGrandScore = p.totalScore;
             grandTieList = [p];
@@ -533,21 +515,20 @@ function calculateOscarResults() {
         }
     });
 
-    // פונקציית המשך ריצה לאחר הכרעת האלוף הכללי
+    // הכרעה והרצת שרשרת חלוקת הקטגוריות
     if (grandTieList.length > 1) {
         triggerManualTieBreaker("👑 אלוף האולם הכללי (מיזם השנה)", grandTieList, (chosen) => {
             executeOscarCategoriesAllocation(chosen, blockedBoysIds, blockedGirlsIds);
         });
     } else {
-        grandChampion = grandTieList[0] || null;
+        const grandChampion = grandTieList[0] || null;
         executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blockedGirlsIds);
     }
 }
 
-// שלב 4: חלוקת 21 הפרסים ב-7 הקטגוריות הקשיחות בסבב משולש
+// שלב 4: חלוקת 21 הפרסים ב-7 הקטגוריות הקשיחות
 function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blockedGirlsIds) {
     
-    // הצגת האלוף הכללי בלוח
     if (grandChampion) {
         document.getElementById("res-grand-champion").innerHTML = `
             <strong>מיזם מספר ${grandChampion.id} – ${grandChampion.title}</strong><br>
@@ -555,7 +536,7 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
         `;
         grandChampion.awardsWon.push("👑 מיזם השנה (אלוף כללי)");
         
-        // החלת חוק החסימה הקשיח: האלוף הכללי נחסם אוטומטית מלקבל גביע באף קטגוריה אחרת!
+        // חוק חסימת כפל זכיות: האלוף הכללי נחסם אוטומטית מלקבל גביע באף קטגוריה נוספת
         if (grandChampion.gender === "בנות") {
             blockedGirlsIds.push(String(grandChampion.id));
         } else {
@@ -565,15 +546,11 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
         document.getElementById("res-grand-champion").textContent = "אין נתוני דירוג מספקים באולם.";
     }
 
-    // מבנה שיחזיק את רשימת מקומות 1,2,3 לכל קטגוריה
     let categoryResults = {}; 
     CRITERIA_CATEGORIES.forEach(c => { categoryResults[c.id] = { first: null, second: null, third: null }; });
 
-    // תור משימות לביצוע סדרתי של הקטגוריות והפודיומים
     let allocationQueue = [];
-
     CRITERIA_CATEGORIES.forEach(cat => {
-        // עבור כל קטגוריה, מחלקים מקום ראשון, אז שני, אז שלישי
         allocationQueue.push({ catId: cat.id, catName: cat.name, place: "first", label: "🥇 מקום ראשון" });
         allocationQueue.push({ catId: cat.id, catName: cat.name, place: "second", label: "🥈 מקום שני" });
         allocationQueue.push({ catId: cat.id, catName: cat.name, place: "third", label: "🥉 מקום שלישי" });
@@ -581,18 +558,16 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
 
     function processQueueStep(index) {
         if (index >= allocationQueue.length) {
-            // סיום חלוקת כל הקטגוריות! מציגים את התוצאות ללייב
             renderFinalOscarUI(categoryResults);
             return;
         }
 
         const task = allocationQueue[index];
         
-        // מציאת המועמדים לבנים ובנות שאינם חסומים
         let eligibleBoys = processedProjectsSummary.filter(p => p.gender !== "בנות" && !blockedBoysIds.includes(String(p.id)) && p.numJudges > 0);
         let eligibleGirls = processedProjectsSummary.filter(p => p.gender === "בנות" && !blockedGirlsIds.includes(String(p.id)) && p.numJudges > 0);
 
-        // א) מציאת המנצח/ים אצל הבנים בקטגוריה הזו
+        // מציאת מובילים בקטגוריה - בנים
         let maxBoyScore = -1; let boyCandidates = [];
         eligibleBoys.forEach(p => {
             const score = p.averages[task.catId] || 0;
@@ -600,7 +575,7 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
             else if (score === maxBoyScore) { boyCandidates.push(p); }
         });
 
-        // ב) מציאת המנצח/ים אצל הבנות בקטגוריה הזו
+        // מציאת מובילים בקטגוריה - בנות
         let maxGirlScore = -1; let girlCandidates = [];
         eligibleGirls.forEach(p => {
             const score = p.averages[task.catId] || 0;
@@ -608,11 +583,11 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
             else if (score === maxGirlScore) { girlCandidates.push(p); }
         });
 
-        // שוברי שוויון פנימיים אוטומטיים לפי סדר עדיפויות (ממוצע משוקלל כללי)
+        // פונקציית שובר שוויון פנימית/ידנית
         function solveTieIfAny(candidates, catId, callback) {
             if (candidates.length <= 1) { callback(candidates[0] || null); return; }
             
-            // בדיקת שובר שוויון 1: מי בעל ממוצע משוקלל כללי גבוה יותר?
+            // עדיפות 1: מי בעל ממוצע משוקלל כללי גבוה יותר?
             let highestTotalScore = -1; let finalTieList = [];
             candidates.forEach(c => {
                 if (c.totalScore > highestTotalScore) { highestTotalScore = c.totalScore; finalTieList = [c]; }
@@ -622,22 +597,18 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
             if (finalTieList.length === 1) {
                 callback(finalTieList[0]);
             } else {
-                // שובר שוויון 2 מוחלט: עצירה והקפצת חלון שבירה ידני למנהלת
+                // עדיפות 2: הקפצת חלון הכרעה ידני למנהלת באולם
                 triggerManualTieBreaker(`${task.label} בקטגוריית [${task.catName}] עבור מיזמי ${candidates[0].gender}`, finalTieList, (selectedProject) => {
                     callback(selectedProject);
                 });
             }
         }
 
-        // פתרון לבנים
         solveTieIfAny(boyCandidates, task.catId, (winningBoy) => {
-            // פתרון לבנות
             solveTieIfAny(girlCandidates, task.catId, (winningGirl) => {
                 
-                // רישום התוצאה לצמד הנוכחי
                 categoryResults[task.catId][task.place] = { boy: winningBoy, girl: winningGirl };
 
-                // החלת חוק החסימה הדרמטי: הזוכים ננעלים ונחסמים להמשך התחרות לחלוטין!
                 if (winningBoy) {
                     blockedBoysIds.push(String(winningBoy.id));
                     winningBoy.awardsWon.push(`${task.label} – ${task.catName}`);
@@ -647,13 +618,11 @@ function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blocked
                     winningGirl.awardsWon.push(`${task.label} – ${task.catName}`);
                 }
 
-                // מעבר לשלב הבא בתור המשימות
                 processQueueStep(index + 1);
             });
         });
     }
 
-    // הפעלת הריצה הטורית של התור
     processQueueStep(0);
 }
 
@@ -673,7 +642,7 @@ function triggerManualTieBreaker(title, candidatesList, onResolvedCallback) {
         
         btn.onclick = () => {
             document.getElementById("tie-breaker-modal").classList.remove("active");
-            onResolvedCallback(p); // החזרת המיזם הנבחר להמשך המנוע
+            onResolvedCallback(p); 
         };
         btnContainer.appendChild(btn);
     });
@@ -718,10 +687,9 @@ function renderFinalOscarUI(results) {
         gridContainer.appendChild(card);
     });
 
-    // הצגת הפאנל
     document.getElementById("oscar-results-panel").style.display = "block";
 
-    // 🔍 בניית דאשבורד השקיפות והניתוח המלא למנהל 🔍
+    // מילוי טבלת השקיפות לניתוח מעמיק
     buildTransparencyDashboardTable();
 }
 
@@ -730,14 +698,12 @@ function buildTransparencyDashboardTable() {
     const tbody = document.getElementById("transparency-table-body");
     tbody.innerHTML = "";
 
-    // מיון המערך מהציון המשוקלל הכללי הגבוה ביותר לנמוך ביותר
     let sortedSummary = [...processedProjectsSummary].sort((a, b) => b.totalScore - a.totalScore);
 
     sortedSummary.forEach(p => {
         const row = document.createElement("tr");
         row.className = p.gender === "בנות" ? "row-girl-trans" : "row-boy-trans";
 
-        // עיבוד סטטוס הזכייה באוסקר
         let awardsBadgeHTML = `<span style="color:#64748b;">❌ לא זכה בפרס</span>`;
         if (p.awardsWon && p.awardsWon.length > 0) {
             awardsBadgeHTML = p.awardsWon.map(award => `<div class="status-badge-won">${award}</div>`).join(" ");
@@ -753,9 +719,6 @@ function buildTransparencyDashboardTable() {
         tbody.appendChild(row);
     });
 
-    // הצגת הפאנל של הטבלה
     document.getElementById("admin-transparency-panel").style.display = "block";
-    
-    // גלילה חלקה לראש תוצאות האוסקר בשטח
     document.getElementById("oscar-results-panel").scrollIntoView({ behavior: "smooth" });
 }
