@@ -14,8 +14,10 @@
             <div class="logo-frame">
                 <img src="campus-hemad-logo.jpg" alt="לוגו קמפוס חמד">
             </div>
+            
             <h1 class="main-app-title">מערכת שפיטה למנטורים</h1>
             <p class="app-subtitle">כנס להצגת יוזמות "עשה טוב" תשפ"ו</p>
+            
             <div class="login-card">
                 <label for="mentor-dropdown" class="card-label">בחר/י את שמך מהרשימה:</label>
                 <div class="select-container">
@@ -43,10 +45,6 @@
             <h2 class="page-title">לוח מיזמים מנטורים</h2>
             <p class="page-subtitle">סרקו ברקוד בעמדה או לחצו על מיזם שכבר דורג לעדכון:</p>
 
-            <div id="finish-container" style="display: none; width: 100%; max-width: 600px; margin-bottom: 20px;">
-                <button id="finish-judging-btn" class="finish-btn">🏁 סיום שיפוט - לחץ כאן</button>
-            </div>
-
             <button id="scan-qr-btn" class="scan-main-btn">📷 סרוק ברקוד שולחן</button>
 
             <div class="gender-section-title">מיזמי בנים:</div>
@@ -54,6 +52,10 @@
 
             <div class="gender-section-title pink">מיזמי בנות:</div>
             <div id="girls-projects-grid" class="projects-grid-container"></div>
+
+            <div id="finish-container" style="display: none; width: 100%; max-width: 600px; margin-top: 15px; margin-bottom: 20px;">
+                <button id="finish-judging-btn" class="finish-btn">🏁 סיום שיפוט ושליחת תוצאות</button>
+            </div>
         </div>
     </div>
 
@@ -69,9 +71,11 @@
                 </div>
             </div>
         </div>
+
         <div class="rating-body-scroll">
             <div class="rating-container-inside" id="categories-container"></div>
         </div>
+
         <div class="rating-fixed-footer">
             <button id="modal-save-btn" class="full-page-save-btn">💾 שמור דירוג והמשך</button>
             <button id="modal-cancel-btn" class="full-page-cancel-btn">❌ בטל וחזור</button>
@@ -81,7 +85,9 @@
     <div id="scanner-modal" class="modal-overlay">
         <div class="modal-card scanner-card">
             <button id="scanner-close-x" class="modal-close-x">✕</button>
-            <div class="modal-header-popup"><h3>סריקת ברקוד המיזם</h3></div>
+            <div class="modal-header-popup">
+                <h3>סריקת ברקוד המיזם</h3>
+            </div>
             <div class="modal-body">
                 <p style="margin-bottom: 15px; text-align: center; color: #475569;">כוונו את המצלמה לברקוד שעל השולחן</p>
                 <div id="qr-reader" style="width: 100%; max-width: 350px; margin: 0 auto; border-radius: 12px; overflow: hidden;"></div>
@@ -92,8 +98,8 @@
     <div id="custom-alert-modal" class="modal-overlay" style="z-index: 2000;">
         <div class="modal-card alert-box-card">
             <div class="modal-body" style="text-align: center; padding: 10px 0;">
-                <p id="custom-alert-text" style="font-size: 1.15rem; font-weight: bold; color: #1e305b; margin-bottom: 20px;">הודעה</p>
-                <button id="custom-alert-close-btn" class="orange-login-btn" style="padding: 12px; border-radius: 12px;">הבנתי, תודה</button>
+                <p id="custom-alert-text" style="font-size: 1.15rem; font-weight: bold; color: #1e305b; line-height: 1.5; margin-bottom: 20px;">הודעה</p>
+                <button id="custom-alert-close-btn" class="orange-login-btn" style="padding: 12px; font-size: 1.1rem; border-radius: 12px;">הבנתי, תודה</button>
             </div>
         </div>
     </div>
@@ -109,6 +115,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4.0"></script>
+    <script src="script.js?v=5.0"></script>
 </body>
 </html>
