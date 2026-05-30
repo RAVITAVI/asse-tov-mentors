@@ -152,12 +152,16 @@ function fetchMentorVotesAndRenderLobby() {
         const pIdx = headers.findIndex(h => h.toLowerCase().includes('project')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('project')) : 2;
         const gIdx = headers.findIndex(h => h.toLowerCase().includes('gender')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('gender')) : 3;
         const c1Idx = headers.findIndex(h => h.toLowerCase().includes('cat1')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('cat1')) : 4;
-        for (let i = 1; i < lines.length; i++) {
+        
+        // קריאה מלמטה למעלה כדי לתפוס תמיד רק את הדירוג האחרון (העדכני ביותר) של המנטור
+        for (let i = lines.length - 1; i >= 1; i--) {
             if (!lines[i].trim()) continue;
             const columns = parseCSVLine(lines[i]);
             if (columns[mIdx] && columns[mIdx].trim() === currentMentor.trim()) {
                 const projectKey = `${parseInt(columns[pIdx])}_${normalizeGender(columns[gIdx])}`;
-                currentMentorVotesRow[projectKey] = [parseInt(columns[c1Idx])||0, parseInt(columns[c1Idx+1])||0, parseInt(columns[c1Idx+2])||0, parseInt(columns[c1Idx+3])||0, parseInt(columns[c1Idx+4])||0, parseInt(columns[c1Idx+5])||0, parseInt(columns[c1Idx+6])||0];
+                if (!currentMentorVotesRow[projectKey]) {
+                    currentMentorVotesRow[projectKey] = [parseInt(columns[c1Idx])||0, parseInt(columns[c1Idx+1])||0, parseInt(columns[c1Idx+2])||0, parseInt(columns[c1Idx+3])||0, parseInt(columns[c1Idx+4])||0, parseInt(columns[c1Idx+5])||0, parseInt(columns[c1Idx+6])||0];
+                }
             }
         }
         fetchAndDisplayProjects();
@@ -165,7 +169,6 @@ function fetchMentorVotesAndRenderLobby() {
 }
 
 function fetchAndDisplayProjects() {
-    // משיכת מצב המערכת בזמן אמת כדי לדעת אם להציג למנטור אזהרה בלובי
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
@@ -262,7 +265,6 @@ window.stepValue = function(id, d) {
 }
 
 function openRatingPage(pNo, pTitle, pCreators, pGender) {
-    // הגנת חסימה קשיחה בלחיצה על כרטיסיית מיזם חדש
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
@@ -285,8 +287,6 @@ ratingBackBtn.onclick = () => showScreen(lobbyScreen);
 
 enterBtn.onclick = () => {
     if (!mentorDropdown.value) { showAlert("אנא בחר/י שם מתוך הרשימה!"); return; }
-    
-    // בדיקת נעילה לפני כניסה מהבית ללובי
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
@@ -325,7 +325,6 @@ finishBtn.onclick = () => {
 };
 
 scanQrBtn.onclick = () => {
-    // בדיקת נעילה מוקדמת לפני פתיחת המצלמה לסריקה
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
@@ -359,8 +358,6 @@ function triggerAdminPasswordPrompt() {
         lobbyScreen.classList.remove('active');
         ratingScreen.classList.remove('active');
         if (adminScreen) adminScreen.classList.add('active');
-        
-        // משיכת הסטטוס הנוכחי מיד עם הכניסה כדי לעדכן את הכפתורים והפנס
         updateAdminStatusVisuals();
         fetchAdminDashboardData();
     } else if (pass !== null) {
@@ -372,16 +369,13 @@ adminBackBtn.onclick = () => {
     showScreen(loginScreen);
 };
 
-// 🚥 מאזיני סטטוס ON/OFF באדמין
 if (adminStatusOnBtn && adminStatusLockBtn) {
     adminStatusOnBtn.onclick = () => setSystemStatusOnServer("ON");
     adminStatusLockBtn.onclick = () => setSystemStatusOnServer("LOCK");
 }
 
-// פונקציה שמבררת מה הסטטוס כרגע בשרת ומדליקה את הכפתור הנכון
 function updateAdminStatusVisuals() {
     if (!adminCurrentStatusBadge) return;
-    
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
@@ -389,14 +383,12 @@ function updateAdminStatusVisuals() {
                 adminCurrentStatusBadge.innerHTML = "🔴 נעול";
                 adminCurrentStatusBadge.style.background = "#fef2f2";
                 adminCurrentStatusBadge.style.color = "#ef4444";
-                
                 adminStatusLockBtn.style.opacity = "1";
                 adminStatusOnBtn.style.opacity = "0.4";
             } else {
                 adminCurrentStatusBadge.innerHTML = "🟢 פעיל";
                 adminCurrentStatusBadge.style.background = "#f0fdf4";
                 adminCurrentStatusBadge.style.color = "#10b981";
-                
                 adminStatusOnBtn.style.opacity = "1";
                 adminStatusLockBtn.style.opacity = "0.4";
             }
@@ -414,14 +406,13 @@ function setSystemStatusOnServer(statusState) {
     }).then(() => {
         setTimeout(() => {
             customAlertModal.style.display = 'none';
-            // עדכון חזותי מיידי של הפנסים והלחצנים לאחר השינוי
             updateAdminStatusVisuals();
             showAlert(statusState === "ON" ? "🟢 המערכת נפתחה לדירוג מנטורים!" : "🔴 המערכת ננעלה בבטחה ופס התרעה הופעל בשטח!");
         }, 800);
     });
 }
 
-// 📊 טעינת נתוני אדמין וטבלת שקיפות גולמית
+// 📊 טעינת נתוני אדמין וניקוי כפילויות מוחלט מטבלת השקיפות
 function fetchAdminDashboardData() {
     if (!adminVotesTableBody) return;
     adminVotesTableBody.innerHTML = `<tr><td colspan="4" style="padding:15px; text-align:center; color:#64748b;">טוען נתונים מהשרת... ⏳</td></tr>`;
@@ -430,12 +421,24 @@ function fetchAdminDashboardData() {
     fetch(`${APPS_SCRIPT_URL}?action=getAdminVotesData`)
         .then(res => res.json())
         .then(votes => {
-            allVotesAdminData = votes || [];
-            if (allVotesAdminData.length === 0) {
+            const rawVotes = votes || [];
+            if (rawVotes.length === 0) {
                 adminVotesTableBody.innerHTML = `<tr><td colspan="4" style="padding:15px; text-align:center; color:#64748b;">טרם נקלטו הצבעות במערכת.</td></tr>`;
                 return;
             }
             
+            // 🎯 סינון כפילויות חכם - שומר רק את הדירוג האחרון (הכי מעודכן) של כל מנטור לכל מיזם
+            const uniqueVotesMap = {};
+            rawVotes.forEach(v => {
+                const uniqueKey = `${v.mentor.trim()}_${v.projectId}_${v.gender}`;
+                // מכיוון שהנתונים מגיעים לפי סדר כרונולוגי, דריסה מתמדת תשאיר לנו את השורה הכי עדכנית
+                uniqueVotesMap[uniqueKey] = v;
+            });
+            
+            // הפיכה חזרה למערך ומיון אלפביתי נקי לפי שם המנטור
+            allVotesAdminData = Object.values(uniqueVotesMap).sort((a, b) => a.mentor.localeCompare(b.mentor, 'he'));
+            
+            // רינדור הטבלה המסוננת והממוינת
             let html = "";
             allVotesAdminData.forEach(v => {
                 const gLabel = v.gender === "female" ? "🚺 בנות" : "🚹 בנים";
@@ -452,14 +455,15 @@ function fetchAdminDashboardData() {
         });
 }
 
-// 🏆 מנוע האוסקר המשוקלל והחכם
+// 🏆 מנוע האוסקר המאוחד (מקשה אחת ללא הפרדת מגדר + מניעת כפל זכיות)
 if (adminCalcOscarBtn) {
     adminCalcOscarBtn.onclick = () => {
         if (!allVotesAdminData || allVotesAdminData.length === 0) {
-            showAlert("אין מספיק נתונים לחישוב אוסקר כרגע.");
+            showAlert("אין מספיק נתונים לחישוב אוסקר כרגע. ודאי שטבלת השקיפות טעונה.");
             return;
         }
         
+        // 1. קיבוץ הצבעות וחישוב ממוצעים לכל מיזם (הבנים והבנות יחד במערך אחד!)
         const projectSummary = {};
         allVotesAdminData.forEach(v => {
             const key = `${v.projectId}_${v.gender}`;
@@ -470,44 +474,42 @@ if (adminCalcOscarBtn) {
             projectSummary[key].count += 1;
         });
         
-        const calculatedArr = Object.values(projectSummary).map(p => ({
+        // מיון כל המיזמים של הכנס יחד מהממוצע הגבוה ביותר לנמוך ביותר
+        const allRanked = Object.values(projectSummary).map(p => ({
             id: p.id,
             gender: p.gender,
             avg: p.sum / p.count
-        }));
+        })).sort((a, b) => b.avg - a.avg);
         
-        const boysRanked = calculatedArr.filter(p => p.gender !== 'female').sort((a,b) => b.avg - a.avg);
-        const girlsRanked = calculatedArr.filter(p => p.gender === 'female').sort((a,b) => b.avg - a.avg);
+        // 2. חלוקת המקומות (כיוון שהם ממוינים, מניעת כפל זכיות קורה אוטומטית לפי המיקומים 0, 1, 2)
+        const places = {
+            gold: allRanked[0] || null,
+            silver: allRanked[1] || null,
+            bronze: allRanked[2] || null
+        };
         
-        const boysPlaces = { gold: boysRanked[0] || null, silver: boysRanked[1] || null, bronze: boysRanked[2] || null };
-        const girlsPlaces = { gold: girlsRanked[0] || null, silver: girlsRanked[1] || null, bronze: girlsRanked[2] || null };
-        
-        let resHTML = `<h3 style="font-size:1.15rem; color:#1e3a8a; border-bottom:2px solid #fbbf24; padding-bottom:4px; margin-bottom:5px;">🏆 תוצאות האוסקר הסופיות:</h3>`;
+        // 3. רינדור חזותי מפואר ומאוחד
+        let resHTML = `<h3 style="font-size:1.15rem; color:#1e3a8a; border-bottom:2px solid #fbbf24; padding-bottom:4px; margin-bottom:12px;">🏆 תוצאות האוסקר הסופיות (כלל המיזמים):</h3>`;
         
         const makeCard = (title, icon, data) => {
-            if (!data) return `<div style="padding:8px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; color:#94a3b8;">${icon} ${title}: אין מידע</div>`;
+            if (!data) return `<div style="padding:8px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; color:#94a3b8; margin-bottom: 8px;">${icon} ${title}: אין מידע</div>`;
+            const gBadge = data.gender === "female" ? "🚺 מיזם בנות" : "🚹 מיזם בנים";
             return `<div style="padding:12px; background:white; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 5px rgba(0,0,0,0.02); margin-bottom: 8px;">
                 <div style="font-weight:800; font-size:1rem; color:#0f172a;">${icon} ${title}</div>
-                <div style="font-size:0.95rem; color:#2563eb; font-weight:bold; margin-top:2px;">מיזם מספר ${data.id}</div>
+                <div style="font-size:1.05rem; color:#2563eb; font-weight:bold; margin-top:2px;">מיזם מספר ${data.id} <span style="font-size:0.8rem; font-weight:normal; color:#64748b;">(${gBadge})</span></div>
                 <div style="font-size:0.8rem; color:#64748b;">ציון משוקלל סופי: ${data.avg.toFixed(2)} נק'</div>
             </div>`;
         };
         
-        resHTML += `<div style="font-weight:bold; margin-top:5px; margin-bottom:5px; color:#1d4ed8;">🚹 קטגוריית בנים:</div>`;
-        resHTML += makeCard("מקום ראשון (זהב)", "🥇", boysPlaces.gold);
-        resHTML += makeCard("מקום שני (כסף)", "🥈", boysPlaces.silver);
-        resHTML += makeCard("מקום שלישי (ארד)", "🥉", boysPlaces.bronze);
-        
-        resHTML += `<div style="font-weight:bold; margin-top:15px; margin-bottom:5px; color:#be185d;">🚺 קטגוריית בנות:</div>`;
-        resHTML += makeCard("מקום ראשון (זהב)", "🥇", girlsPlaces.gold);
-        resHTML += makeCard("מקום שני (כסף)", "🥈", girlsPlaces.silver);
-        resHTML += makeCard("מקום שלישי (ארד)", "🥉", girlsPlaces.bronze);
+        resHTML += makeCard("מקום ראשון (זהב)", "🥇", places.gold);
+        resHTML += makeCard("מקום שני (כסף)", "🥈", places.silver);
+        resHTML += makeCard("מקום שלישי (ארד)", "🥉", places.bronze);
         
         if (oscarResultsArea) {
             oscarResultsArea.innerHTML = resHTML;
             oscarResultsArea.style.display = 'block';
         }
         
-        showAlert("✨ התוצאות חושבו ומניעת כפל הזכיות הופעלה בהצלחה!");
+        showAlert("✨ תוצאות האוסקר המאוחדות חושבו בהצלחה ללא כפילויות זכייה!");
     };
 }
