@@ -82,6 +82,61 @@
         </div>
     </div>
 
+    <div id="admin-screen" class="screen">
+        <div class="rating-header" style="background: #1e3a8a; color: white; border-bottom: none;">
+            <button id="admin-back-btn" class="back-arrow-btn" style="background: rgba(255,255,255,0.2); color: white;">➔</button>
+            <div class="rating-title-area">
+                <h2 style="color: white; font-size: 1.4rem;">🛠️ פאנל ניהול וכספת אוסקר</h2>
+                <div style="font-size: 0.85rem; color: #93c5fd; margin-top: 2px;">בקרת כנס "עשה טוב" בזמן אמת</div>
+            </div>
+        </div>
+
+        <div class="rating-body-scroll" style="padding-top: 95px; padding-bottom: 30px;">
+            <div class="rating-container-inside" style="max-width: 600px;">
+                
+                <div class="category-card-row" style="border-top: 5px solid #3b82f6;">
+                    <div class="cat-card-title">🚥 מצב מערכת השיפוט</div>
+                    <div class="cat-card-desc">קבעי האם המנטורים יכולים לדרג ברגע זה או שהמערכת נעולה:</div>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        <button id="admin-status-on-btn" class="orange-login-btn" style="background: #10b981; box-shadow: none; font-size: 1rem; padding: 12px; flex: 1; border-radius: 12px;">🟢 פתוח לדירוג (ON)</button>
+                        <button id="admin-status-lock-btn" class="orange-login-btn" style="background: #ef4444; box-shadow: none; font-size: 1rem; padding: 12px; flex: 1; border-radius: 12px;">🔴 נעול מוחלט (LOCK)</button>
+                    </div>
+                </div>
+
+                <div class="category-card-row" style="border-top: 5px solid #fbbf24; background: #fffdf5;">
+                    <div class="cat-card-title" style="color: #b45309;">🏆 מנוע האוסקר המשוקלל</div>
+                    <div class="cat-card-desc">חישוב מנצחים לפי ממוצע משוקלל, הפרדה מוחלטת לבנים/בנות, מניעת כפילויות זכייה ושבירת שוויון מתמטית אוטומטית.</div>
+                    <button id="admin-calc-oscar-btn" class="orange-login-btn" style="background: linear-gradient(to bottom, #fbbf24, #d97706); box-shadow: 0 4px 0 #b45309; margin-top: 5px; border-radius: 12px;">✨ חשב תוצאות אוסקר עכשיו</button>
+                    
+                    <div id="oscar-results-area" style="margin-top: 15px; display: none; flex-direction: column; gap: 15px; direction: rtl;"></div>
+                </div>
+
+                <div class="category-card-row" style="border-top: 5px solid #6b7280;">
+                    <div class="cat-card-title">📊 טבלת שקיפות הצבעות גולמיות</div>
+                    <div class="cat-card-desc" style="margin-bottom: 10px;">רשימת כל ההצבעות שנקלטו בשרת בזמן אמת לשליטה ואימות:</div>
+                    <div style="width: 100%; overflow-x: auto; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem; min-width: 450px;">
+                            <thead>
+                                <tr style="background: #e2e8f0; color: #334155;">
+                                    <th style="padding: 10px;">מנטור</th>
+                                    <th style="padding: 10px;">מיזם</th>
+                                    <th style="padding: 10px;">מגדר</th>
+                                    <th style="padding: 10px; text-align: center;">סה"כ ניקוד</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-votes-table-body">
+                                <tr>
+                                    <td colspan="4" style="padding: 15px; text-align: center; color: #64748b;">טוען נתונים...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <div id="scanner-modal" class="modal-overlay">
         <div class="modal-card scanner-card">
             <button id="scanner-close-x" class="modal-close-x">✕</button>
@@ -99,7 +154,7 @@
         <div class="modal-card alert-box-card">
             <div class="modal-body" style="text-align: center; padding: 10px 0;">
                 <p id="custom-alert-text" style="font-size: 1.15rem; font-weight: bold; color: #1e305b; line-height: 1.5; margin-bottom: 20px;">הודעה</p>
-                <button id="custom-alert-close-btn" class="orange-login-btn" style="padding: 12px; font-size: 1.1rem; border-radius: 12px;">הבנתי, תודה</button>
+                <button id="custom-alert-close-btn" class="orange-login-btn" style="padding: 12px; font-size: 1.1rem; border-radius: 12px; box-shadow: none;">הבנתי, תודה</button>
             </div>
         </div>
     </div>
@@ -111,10 +166,10 @@
             <p style="font-size: 1.1rem; color: #475569; margin-bottom: 25px; line-height: 1.4;">
                 הערכת המיזמים שלך הושלמה ונקלטה בהצלחה.<br>תודה על תרומתך לכנס "עשה טוב" תשפ"ו!
             </p>
-            <button onclick="location.reload()" class="orange-login-btn" style="border-radius: 15px;">חזרה לדף הבית</button>
+            <button onclick="location.reload()" class="orange-login-btn" style="border-radius: 15px; box-shadow: none;">חזרה לדף הבית</button>
         </div>
     </div>
 
-    <script src="script.js?v=5.0"></script>
+    <script src="script.js?v=7.0"></script>
 </body>
 </html>
