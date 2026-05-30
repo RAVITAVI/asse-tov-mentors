@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=7.0">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <title>מערכת שפיטה למנטורים - כנס עשה טוב</title>
 </head>
 <body>
 
     <div id="login-screen" class="screen active">
+        <div class="admin-gear-wrapper">
+            <button id="admin-gear-btn" class="gear-btn" onclick="openAdminPasswordModal()">⚙️</button>
+        </div>
+
         <div class="login-centered-content">
             <div class="logo-frame">
                 <img src="campus-hemad-logo.jpg" alt="לוגו קמפוס חמד">
@@ -82,6 +86,109 @@
         </div>
     </div>
 
+    <div id="admin-screen" class="screen">
+        <div class="rating-header admin-dark-header">
+            <button class="back-arrow-btn" onclick="closeAdminScreen()">➔</button>
+            <div class="rating-title-area">
+                <h2>חמ"ל ניהול ותוצאות האוסקר</h2>
+                <div class="creators-names">שליטה בלייב, נעילת שערים ופתרון שוברי שוויון</div>
+            </div>
+        </div>
+
+        <div class="admin-body-scroll">
+            <div class="admin-card">
+                <h3>📊 תמונת מצב מהשטח (לייב)</h3>
+                <div class="admin-stats-row">
+                    <div class="stat-box">
+                        <span class="stat-val" id="admin-total-votes">0</span>
+                        <span class="stat-lbl">סה"כ טפסים שנקלטו</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-val" id="admin-active-judges">0</span>
+                        <span class="stat-lbl">שופטים פעילים כעת</span>
+                    </div>
+                </div>
+                
+                <h4 style="margin-top:20px; margin-bottom:10px; color:#1e293b;">🔒 בקרת סטטוס נעילת שערים:</h4>
+                <div class="status-toggle-container">
+                    <button id="status-on-btn" class="status-toggle-btn active-on" onclick="setSystemStatus('ON')">🟢 פעיל (ON)</button>
+                    <button id="status-warn-btn" class="status-toggle-btn" onclick="setSystemStatus('WARN')">🟡 התרעה (5 דק')</button>
+                    <button id="status-off-btn" class="status-toggle-btn" onclick="setSystemStatus('OFF')">🔴 נעול (OFF)</button>
+                </div>
+            </div>
+
+            <div class="admin-card">
+                <h3>👥 הספק דירוג לפי מנטור</h3>
+                <div id="admin-judges-list" class="admin-judges-list-container">
+                    <p style="color:#64748b;">טוען נתונים...</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 25px 0;">
+                <button id="calc-oscar-btn" class="calc-oscar-main-btn" onclick="calculateOscarResults()">🎬 לחץ לחישוב תוצאות האוסקר 🏆</button>
+            </div>
+
+            <div id="oscar-results-panel" class="admin-card" style="display:none; background: #fff;">
+                <h2 class="oscar-results-main-title">🏆 לוח זכיות הזהב הרשמי</h2>
+                
+                <div class="oscar-champion-card">
+                    <div class="champion-badge">👑 מיזם השנה - האלוף הכללי</div>
+                    <div id="res-grand-champion" class="champion-name">מחשב נתונים...</div>
+                </div>
+
+                <div id="oscar-categories-results-grid" class="oscar-grid-container"></div>
+            </div>
+
+            <div id="admin-transparency-panel" class="admin-card" style="display:none; margin-top: 25px;">
+                <h3>🔍 דאשבורד שקיפות וניתוח ציונים מלא (ממוצעים)</h3>
+                <p style="font-size:0.85rem; color:#64748b; margin-bottom:15px;">הטבלה מציגה את כל המיזמים באולם מסודרים מהציון המשוקלל הגבוה לנמוך ומאפשרת לך להפעיל שיקול דעת מלא:</p>
+                <div class="table-scroll-wrapper">
+                    <table class="transparency-table">
+                        <thead>
+                            <tr>
+                                <th>מיזם</th>
+                                <th>שם המיזם</th>
+                                <th>ממוצע כללי</th>
+                                <th>שופטים</th>
+                                <th>סטטוס זכייה באוסקר</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transparency-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="admin-password-modal" class="modal-overlay">
+        <div class="modal-card alert-box-card">
+            <div class="modal-body" style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
+                <h3>כניסה לפאנל הניהול</h3>
+                <p style="color: #475569; margin-bottom: 15px; font-size: 0.95rem;">אנא הזן את סיסמת המנהל הדיסקרטית</p>
+                <input type="password" id="admin-pass-input" class="admin-password-field" placeholder="הזן סיסמה...">
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="orange-login-btn" style="margin:0; background:#1e305b;" onclick="submitAdminPassword()">אשר כניסה</button>
+                    <button class="full-page-cancel-btn" style="margin:0; border-radius:12px; padding:12px;" onclick="closeAdminPasswordModal()">ביטול</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tie-breaker-modal" class="modal-overlay" style="z-index: 4000;">
+        <div class="modal-card alert-box-card">
+            <div class="modal-body" style="text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">🛑</div>
+                <h3 style="color:#ef4444;">שוויון מוחלט בצמרת!</h3>
+                <p id="tie-breaker-text" style="color: #1e293b; margin-bottom: 20px; font-weight: bold; line-height: 1.4;"></p>
+                <div id="tie-breaker-buttons-container" style="display:flex; flex-direction:column; gap:10px;">
+                    </div>
+            </div>
+        </div>
+    </div>
+
     <div id="scanner-modal" class="modal-overlay">
         <div class="modal-card scanner-card">
             <button id="scanner-close-x" class="modal-close-x">✕</button>
@@ -115,6 +222,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=5.0"></script>
+    <script src="script.js?v=7.0"></script>
 </body>
 </html>
