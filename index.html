@@ -31,6 +31,10 @@
     </div>
 
     <div id="lobby-screen" class="screen">
+        <div id="lobby-lock-warning" style="display: none; background: #fef08a; color: #854d0e; padding: 12px; text-align: center; font-weight: bold; border-bottom: 3px solid #ca8a04; font-size: 0.95rem; line-height: 1.4; animation: pulse 2s infinite;">
+            ⚠️ תשומת לב: השיפוט ננעל על ידי הנהלת הכנס!<br>נא לסיים דירוגים פתוחים ברגעים אלו ולא לצאת מהעמוד.
+        </div>
+
         <div class="lobby-header">
             <div class="welcome-msg">שופט/ת: <span id="user-display-name">---</span></div>
             <div class="progress-container">
@@ -87,7 +91,7 @@
             <button id="admin-back-btn" class="back-arrow-btn" style="background: rgba(255,255,255,0.2); color: white;">➔</button>
             <div class="rating-title-area">
                 <h2 style="color: white; font-size: 1.4rem;">🛠️ פאנל ניהול וכספת אוסקר</h2>
-                <div style="font-size: 0.85rem; color: #93c5fd; margin-top: 2px;">בקרת כנס "עשה טוב" בזמן אמת</div>
+                <div style="font-size: 0.85rem; color: #93c5fd; margin-top: 2px;">בקרת ככנס "עשה טוב" בזמן אמת</div>
             </div>
         </div>
 
@@ -95,11 +99,14 @@
             <div class="rating-container-inside" style="max-width: 600px;">
                 
                 <div class="category-card-row" style="border-top: 5px solid #3b82f6;">
-                    <div class="cat-card-title">🚥 מצב מערכת השיפוט</div>
-                    <div class="cat-card-desc">קבעי האם המנטורים יכולים לדרג ברגע זה או שהמערכת נעולה:</div>
-                    <div style="display: flex; gap: 10px; margin-top: 5px;">
-                        <button id="admin-status-on-btn" class="orange-login-btn" style="background: #10b981; box-shadow: none; font-size: 1rem; padding: 12px; flex: 1; border-radius: 12px;">🟢 פתוח לדירוג (ON)</button>
-                        <button id="admin-status-lock-btn" class="orange-login-btn" style="background: #ef4444; box-shadow: none; font-size: 1rem; padding: 12px; flex: 1; border-radius: 12px;">🔴 נעול מוחלט (LOCK)</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div class="cat-card-title" style="margin-bottom:0;">🚥 מצב מערכת השיפוט</div>
+                        <div id="admin-current-status-badge" style="padding: 5px 12px; background: #e2e8f0; border-radius: 20px; font-weight: bold; font-size: 0.85rem; color: #334155;">בודק סטטוס...</div>
+                    </div>
+                    <div class="cat-card-desc">קבעי האם המנטורים יכולים לדרג ברגע זה או שהמערכת בתהליך נעילה:</div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button id="admin-status-on-btn" class="orange-login-btn" style="background: #10b981; opacity: 0.4; box-shadow: none; font-size: 0.95rem; padding: 12px; flex: 1; border-radius: 12px; transition: all 0.3s;">🟢 פתוח לדירוג (ON)</button>
+                        <button id="admin-status-lock-btn" class="orange-login-btn" style="background: #ef4444; opacity: 0.4; box-shadow: none; font-size: 0.95rem; padding: 12px; flex: 1; border-radius: 12px; transition: all 0.3s;">🔴 נעילה והתרעה (LOCK)</button>
                     </div>
                 </div>
 
@@ -170,6 +177,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=7.0"></script>
+    <script src="script.js?v=7.1"></script>
 </body>
 </html>
