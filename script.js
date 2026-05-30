@@ -1,280 +1,761 @@
-document.addEventListener("DOMContentLoaded", () => {
-    loadMentorsFromServer();
-});
+/* ==========================================================================
+   מערכת שפיטה למנטורים - כנס עשה טוב תשפ"ו
+   מנוע האפליקציה המלא - גרסה 7.0 (כולל פאנל אדמין, אוסקר ודאשבורד שקיפות)
+   ========================================================================== */
 
-const loginScreen = document.getElementById('login-screen');
-const lobbyScreen = document.getElementById('lobby-screen');
-const ratingScreen = document.getElementById('rating-screen'); 
-const categoriesContainer = document.getElementById('categories-container');
+// 🌐 הגדרת כתובת ה-API של ה-Google Web App שלך
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzV8_9Lz0LhFmx3WpxV6WbM8_x_YOUR_ACTUAL_ID/exec"; 
 
-const mentorDropdown = document.getElementById('mentor-dropdown');
-const enterBtn = document.getElementById('enterBtn');
-const userDisplayName = document.getElementById('user-display-name');
-const progressCount = document.getElementById('progress-count');
-const progressBarFill = document.getElementById('progress-bar-fill');
-const boysProjectsGrid = document.getElementById('boys-projects-grid');
-const girlsProjectsGrid = document.getElementById('girls-projects-grid');
-const scanQrBtn = document.getElementById('scan-qr-btn');
+// 🗂️ מערכי הנתונים הגלובליים באפליקציה
+let mentorsList = [];
+let projectsList = [];
+let rawVotesList = [];
+let currentMentorName = "";
+let currentProjectObj = null;
+let html5QrScanner = null;
+let currentSystemStatus = "ON"; // ON, WARN, OFF
 
-// רכיבי סיום
-const finishContainer = document.getElementById('finish-container');
-const finishBtn = document.getElementById('finish-judging-btn');
-const thanksModal = document.getElementById('thanks-modal');
-
-const ratingBackBtn = document.getElementById('rating-back-btn');
-const modalProjectTitle = document.getElementById('modal-project-title');
-const modalProjectCreations = document.getElementById('modal-project-creators');
-const modalProjectNo = document.getElementById('modal-project-no');
-const modalProjectGender = document.getElementById('modal-project-gender');
-const modalSaveBtn = document.getElementById('modal-save-btn');
-const modalCancelBtn = document.getElementById('modal-cancel-btn');
-
-const customAlertModal = document.getElementById('custom-alert-modal');
-const customAlertText = document.getElementById('custom-alert-text');
-const customAlertCloseBtn = document.getElementById('custom-alert-close-btn');
-
-const scannerModal = document.getElementById('scanner-modal');
-const scannerCloseX = document.getElementById('scanner-close-x');
-let html5QrcodeScanner = null;
-
-const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1RyrAzEhinN8quqqbj6H_gCdK625z1Hjt7DNOANOCnF0/edit?usp=sharing";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyngk78-25S0ihQLE_zlvBW7rI6Syw_6fzICVULsclXVc1Ruhr9twlCN7SwVjKXJ2-/exec";
-
-let currentMentor = ""; 
-let rawProjectsData = []; 
-let currentMentorVotesRow = {}; 
-let currentSelectedProjectNo = null;
-let currentSelectedProjectGender = "";
-
-const BACKUP_MENTORS = ["רבית אביטן", "שמואל פרומן", "מיטל כהן", "אייל רוזנברג", "דוד לוי", "ניר ברקוביץ", "דפנה אשכנזי", "גלעד שמר", "אורית חדד"];
-
-const CATEGORIES_DATA = [
-    { id: 1, title: "👥 מנהיגות וצוות", desc: "שיתוף פעולה בפיתוח המיזם הכולל ניהול וחלוקת תפקידים ברורה בה הסטודנט תורם את חלקו מתוך חוזקותיו." },
-    { id: 2, title: "🔍 הגדרת הבעיה", desc: "ביצוע מחקר מעמיק; הגדרת קהל היעד, הבנת גורמי הבעיה והבאת נתונים תומכים ומהימנים." },
-    { id: 3, title: "🛠️ פיתוח מוצר ויישומנות", desc: "עד כמה הדגם ממחיש את הפתרון ועד כמה הוא ישים ומוכן ליציאה להתנסות/שוק." },
-    { id: 4, title: "🤖 סיוע בחדשנות", desc: "שימוש בכלים חדשניים (AI, Code) בתהליך הפיתוח וההצגה." },
-    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיות וחשיבה מחוץ刮קופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
-    { id: 6, title: "🌍 אימפקט ותרומה", desc: "פוטנציאל השינוי שהמיזם יכול לייצר בעולם (חברתי/סביבתי/לימודי)." },
-    { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
+// 📋 הגדרת 7 קטגוריות השיפוט הרשמיות לפי סדר החשיבות והמשקלים הקשיח
+const CRITERIA_CATEGORIES = [
+    { id: "impact", name: "אימפקט ותרומה לקהילה", desc: "מידת ההשפעה המעשית של המיזם על קהל היעד והיקף עשיית הטוב שלו בשטח." },
+    { id: "innovation", name: "חדשנות ויצירתיות", desc: "מקוריות הרעיון, חשיבה מחוץ לקופסה ומציאת פתרונות יצירתיים וייחודיים לבעיה." },
+    { id: "presentation", name: "פרזנטציה ויכולת שכנוע", desc: "איכות העמידה מול קהל, רמת הרהיטות, כושר הביטוי והצגת המסרים בצורה ברורה וסוחפת." },
+    { id: "collaboration", name: "עבודת צוות ושותפות", desc: "חלוקת התפקידים בצוות, מידת הסנכרון והערך המוסף שנוצר מהעבודה המשותפת." },
+    { id: "feasibility", name: "היתכנות וישימות המיזם", desc: "עד כמה המיזם ריאלי, בר ביצוע ובעל פוטנציאל להמשך קיום עצמאי בעתיד." },
+    { id: "effort", name: "השקעה, תהליך ולמידה", desc: "רמת המאמץ הניכרת, עומק המחקר שנעשה והתפתחות הצוות לאורך שלבי העבודה." },
+    { id: "branding", name: "מיתוג, עיצוב ונראות הדוכן", desc: "האסתטיקה הכללית של המיזם, שיווק חזותי ועיצוב עמדת התצוגה בכנס." }
 ];
 
-function showAlert(message) {
-    customAlertText.innerText = message;
-    customAlertModal.style.display = 'flex';
-}
-customAlertCloseBtn.onclick = () => customAlertModal.style.display = 'none';
+// 🚀 אתחול המערכת מיד עם טעינת הדף
+document.addEventListener("DOMContentLoaded", () => {
+    fetchInitialData();
+    setupEventListeners();
+    startStatusPolling(); // ניתור סטטוסים בלייב (נעילה והתרעות)
+});
 
-function showScreen(targetScreen) {
-    loginScreen.classList.remove('active');
-    lobbyScreen.classList.remove('active');
-    ratingScreen.classList.remove('active');
-    targetScreen.classList.add('active');
+// 📥 משיכת הנתונים הראשונית מגוגל שייטס
+function fetchInitialData() {
+    fetch(`${SCRIPT_URL}?action=getInitialData`)
+        .then(res => res.json())
+        .then(data => {
+            mentorsList = data.mentors || [];
+            projectsList = data.projects || [];
+            
+            // עדכון רשימת המנטורים הנגררת במסך הבית
+            const select = document.getElementById("mentor-dropdown");
+            select.innerHTML = '<option value="">-- בחר/י שם מהרשימה --</option>';
+            mentorsList.forEach(m => {
+                let opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = m;
+                select.appendChild(opt);
+            });
+        })
+        .catch(err => {
+            console.error("שגיאה בטעינת נתונים ראשוניים:", err);
+            showCustomAlert("חלקה שגיאה בתקשורת עם השרת. אנא רענני את הדף.");
+        });
 }
 
-function parseCSVLine(line) {
-    const result = []; let current = ''; let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') { inQuotes = !inQuotes; }
-        else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
-        else { current += char; }
+// 🔁 ניתור מצב האפליקציה בלייב (מזהה אם המנהלת נעלה את השערים או נתנה 5 דקות)
+function startStatusPolling() {
+    setInterval(() => {
+        fetch(`${SCRIPT_URL}?action=getSystemStatus`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status) {
+                    handleSystemStatusChange(data.status);
+                }
+            }).catch(e => console.log("Status check failed silently"));
+    }, 15000); // בדיקה בכל 15 שניות
+}
+
+// ⚠️ טיפול בשינוי מצב המערכת מהחמ"ל
+function handleSystemStatusChange(newStatus) {
+    if (newStatus === currentSystemStatus) return;
+    currentSystemStatus = newStatus;
+
+    if (currentSystemStatus === "WARN") {
+        showCustomAlert("⚠️ שים/י לב! השפיטה והדירוג יינעלו בעוד כ-5 דקות בדיוק. אנא סיימו לשמור את המיזמים הנוכחיים שלכם!");
+    } else if (currentSystemStatus === "OFF") {
+        showCustomAlert("🛑 זמן השיפוט הסתיים הרמטית! המערכת ננעלה ולא ניתן להזין או לעדכן דירוגים נוספים. תודה על השתתפותך.");
+        // אם המנטור באמצע מסך דירוג, נזרוק אותו ללובי החסום
+        if (document.getElementById("rating-screen").classList.contains("active")) {
+            switchScreen("lobby-screen");
+        }
     }
-    result.push(current.trim());
-    return result.map(col => col.replace(/^"|"$/g, '').trim());
 }
 
-function normalizeGender(genderStr) {
-    if (!genderStr) return "male";
-    const g = genderStr.trim().toLowerCase();
-    if (g.includes('female') || g.includes('בת') || g.includes('בנות')) return 'female';
-    return 'male';
+// 🔔 הגדרת מאזיני כפתורים כלליים במערכת
+function setupEventListeners() {
+    // כפתור כניסה מהבית ללובי
+    document.getElementById("enterBtn").addEventListener("click", () => {
+        const val = document.getElementById("mentor-dropdown").value;
+        if (!val) {
+            showCustomAlert("אנא בחר/י את שמך מהרשימה כדי להמשיך.");
+            return;
+        }
+        currentMentorName = val;
+        document.getElementById("user-display-name").textContent = currentMentorName;
+        
+        // משיכת היסטוריית ההצבעות הספציפית של המנטור הזה
+        refreshMentorLobby();
+    });
+
+    // כפתור חזרה ממסך הדירוג ללובי
+    document.getElementById("rating-back-btn").addEventListener("click", () => {
+        switchScreen("lobby-screen");
+    });
+    document.getElementById("modal-cancel-btn").addEventListener("click", () => {
+        switchScreen("lobby-screen");
+    });
+
+    // כפתור שמירת הדירוג המלא מהמסך השלישי
+    document.getElementById("modal-save-btn").addEventListener("click", saveCurrentProjectRatings);
+
+    // כפתור הפעלת מצלמה לסריקה
+    document.getElementById("scan-qr-btn").addEventListener("click", openBarcodeScanner);
+    document.getElementById("scanner-close-x").addEventListener("click", closeBarcodeScanner);
+    
+    // סגירת אלרט מותאם
+    document.getElementById("custom-alert-close-btn").addEventListener("click", () => {
+        document.getElementById("custom-alert-modal").classList.remove("active");
+    });
+
+    // כפתור סיום שיפוט סופי
+    document.getElementById("finish-judging-btn").addEventListener("click", () => {
+        document.getElementById("thanks-modal").classList.add("active");
+    });
 }
 
-function loadMentorsFromServer() {
-    const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!matches || !matches[1]) { useBackupMentors(); return; }
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors`;
-    fetch(csvUrl).then(r => r.text()).then(text => {
-        const lines = text.split(/\r?\n/);
-        let optionsHtml = '<option value="">בחר/י את שמך מהרשימה...</option>';
-        let count = 0;
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            const columns = parseCSVLine(lines[i]);
-            if (columns[1] && columns[1].trim() !== "") {
-                optionsHtml += `<option value="${columns[1].trim()}">${columns[1].trim()}</option>`;
-                count++;
+// 🔄 רענון ובניית לוח המיזמים האישי של המנטור בלובי
+function refreshMentorLobby() {
+    fetch(`${SCRIPT_URL}?action=getMentorVotes&mentor=${encodeURIComponent(currentMentorName)}`)
+        .then(res => res.json())
+        .then(votedProjectIds => {
+            buildProjectsGrid(votedProjectIds);
+            switchScreen("lobby-screen");
+        })
+        .catch(err => {
+            console.error(err);
+            // הגנת רשת - אם נכשל, נבנה רשת נקייה
+            buildProjectsGrid([]);
+            switchScreen("lobby-screen");
+        });
+}
+
+// 🧱 בנייה דינמית של גריד המיזמים (מופרד לבנים ובנות)
+function buildProjectsGrid(votedIds) {
+    const boysGrid = document.getElementById("boys-projects-grid");
+    const girlsGrid = document.getElementById("girls-projects-grid");
+    
+    boysGrid.innerHTML = "";
+    girlsGrid.innerHTML = "";
+    
+    let countVoted = 0;
+
+    projectsList.forEach(p => {
+        const isVoted = votedIds.includes(String(p.id));
+        if (isVoted) countVoted++;
+
+        // יצירת הכרטיסייה
+        const card = document.createElement("div");
+        card.className = `project-lobby-card ${p.gender === 'בנות' ? 'girl-theme' : 'boy-theme'} ${isVoted ? 'voted' : ''}`;
+        card.onclick = () => openRatingScreenForProject(p);
+
+        card.innerHTML = `
+            <div class="p-card-num">${p.id}</div>
+            <div class="p-card-name">${p.title}</div>
+            ${isVoted ? '<div class="voted-badge">✓ דורג</div>' : ''}
+        `;
+
+        if (p.gender === 'בנות') {
+            girlsGrid.appendChild(card);
+        } else {
+            boysGrid.appendChild(card);
+        }
+    });
+
+    // עדכון מד ההתקדמות למנטור
+    const total = projectsList.length;
+    document.getElementById("progress-count").textContent = `${countVoted}/${total}`;
+    const percent = total > 0 ? (countVoted / total) * 100 : 0;
+    document.getElementById("progress-bar-fill").style.width = `${percent}%`;
+
+    // הצגת כפתור הסיום אם דירג לפחות מיזם אחד
+    if (countVoted > 0) {
+        document.getElementById("finish-container").style.display = "block";
+    } else {
+        document.getElementById("finish-container").style.display = "none";
+    }
+}
+
+// 📝 פתיחת מסך הדירוג עבור מיזם נבחר
+function openRatingScreenForProject(project) {
+    if (currentSystemStatus === "OFF") {
+        showCustomAlert("🛑 המערכת נעולה על ידי מנהלת הכנס. לא ניתן לדרג או לעדכן מיזמים בשעה זו.");
+        return;
+    }
+
+    currentProjectObj = project;
+    
+    // מילוי כותרות
+    document.getElementById("modal-project-title").textContent = project.title;
+    document.getElementById("modal-project-creators").textContent = project.creators || "";
+    document.getElementById("modal-project-no").textContent = `מיזם מספר ${project.id}`;
+    
+    const badge = document.getElementById("modal-project-gender");
+    badge.textContent = project.gender;
+    badge.className = `gender-badge ${project.gender === 'בנות' ? 'girl' : 'boy'}`;
+
+    // משיכת ציונים קודמים אם קיימים, כדי להציג אותם (עריכה חלקה)
+    fetch(`${SCRIPT_URL}?action=getSingleVote&mentor=${encodeURIComponent(currentMentorName)}&projectId=${project.id}`)
+        .then(res => res.json())
+        .then(existingScores => {
+            renderCategoriesForm(existingScores || {});
+            switchScreen("rating-screen");
+        })
+        .catch(() => {
+            renderCategoriesForm({});
+            switchScreen("rating-screen");
+        });
+}
+
+// 🛠️ רינדור טופס 7 הקטגוריות עם כפתורי הרדיו 1-10
+function renderCategoriesForm(existingScores) {
+    const container = document.getElementById("categories-container");
+    container.innerHTML = "";
+
+    CRITERIA_CATEGORIES.forEach(cat => {
+        const card = document.createElement("div");
+        card.className = "category-card";
+
+        let radioRowsHTML = "";
+        for (let i = 1; i <= 10; i++) {
+            const isChecked = existingScores[cat.id] == i ? "checked" : "";
+            radioRowsHTML += `
+                <div class="score-cell">
+                    <input type="radio" name="cat_${cat.id}" id="radio_${cat.id}_${i}" value="${i}" ${isChecked}>
+                    <label for="radio_${cat.id}_${i}" class="score-label">${i}</label>
+                </div>
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="category-title">${cat.name}</div>
+            <div class="category-desc">${cat.desc}</div>
+            <div class="radio-row-container">
+                ${radioRowsHTML}
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// 💾 שמירת הנתונים ושליחתם לגוגל שייטס
+function saveCurrentProjectRatings() {
+    if (currentSystemStatus === "OFF") {
+        showCustomAlert("🛑 המערכת ננעלה כעת! השינויים לא נשמרו.");
+        switchScreen("lobby-screen");
+        return;
+    }
+
+    let payload = {
+        action: "saveVote",
+        mentor: currentMentorName,
+        projectId: currentProjectObj.id
+    };
+
+    // איסוף ווידוא שכל 7 הקטגוריות סומנו
+    for (let cat of CRITERIA_CATEGORIES) {
+        const selected = document.querySelector(`input[name="cat_${cat.id}"]:checked`);
+        if (!selected) {
+            showCustomAlert(`אנא דרג/י את הקטגוריה: "${cat.name}" לפני השמירה.`);
+            return;
+        }
+        payload[cat.id] = selected.value;
+    }
+
+    // הצגת מצב רוחב פס/טעינה קל
+    document.getElementById("modal-save-btn").disabled = true;
+    document.getElementById("modal-save-btn").textContent = "שומר ומסנכרן...";
+
+    // שליחה ב-POST אל ה-Google Web App
+    fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors", // למניעת בעיות CORS במובייל
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(() => {
+        // מאחר ומשתמשים ב-no-cors, הדפדפן לא מחזיר תשובה קריאה, אך השליחה מתבצעת. נניח הצלחה.
+        setTimeout(() => {
+            document.getElementById("modal-save-btn").disabled = false;
+            document.getElementById("modal-save-btn").textContent = "💾 שמור דירוג והמשך";
+            refreshMentorLobby();
+        }, 800);
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById("modal-save-btn").disabled = false;
+        document.getElementById("modal-save-btn").textContent = "💾 שמור דירוג והמשך";
+        showCustomAlert("תקלת רשת קלה, נסה שנית.");
+    });
+}
+
+// 📷 הפעלת סורק הברקודים הרשמי מהנייד
+function openBarcodeScanner() {
+    document.getElementById("scanner-modal").classList.add("active");
+    
+    // יצירת השירות של הברקוד
+    html5QrScanner = new Html5Qrcode("qr-reader");
+    
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    
+    html5QrScanner.start(
+        { facingMode: "environment" }, // מצלמה אחורית
+        config,
+        onQrCodeSuccess,
+        onQrCodeError
+    ).catch(err => {
+        console.error("לא ניתן לפתוח מצלמה:", err);
+        showCustomAlert("לא ניתן לגשת למצלמה. אנא חפש/י את המיזם ידנית בלוח.");
+        closeBarcodeScanner();
+    });
+}
+
+// פונקציית הצלחה בסריקת ברקוד
+function onQrCodeSuccess(decodedText) {
+    // נניח שהברקוד מכיל רק את מספר המיזם (למשל: "14")
+    const projectId = String(decodedText).trim();
+    const foundProject = projectsList.find(p => String(p.id) === projectId);
+    
+    closeBarcodeScanner();
+    
+    if (foundProject) {
+        openRatingScreenForProject(foundProject);
+    } else {
+        showCustomAlert(`ברקוד נסרק בהצלחה (${projectId}), אך לא נמצא מיזם מספר כזה במערכת.`);
+    }
+}
+
+function onQrCodeError(err) {
+    // שגיאות סריקה קטנות קורות בכל פריים, נתעלם כדי לא להציף
+}
+
+function closeBarcodeScanner() {
+    document.getElementById("scanner-modal").classList.remove("active");
+    if (html5QrScanner) {
+        html5QrScanner.stop().then(() => {
+            html5QrScanner = null;
+        }).catch(e => console.log(e));
+    }
+}
+
+// 🚪 ניווט חלקה בין מסכים
+function switchScreen(screenId) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(screenId).classList.add("active");
+    window.scrollTo(0,0);
+}
+
+// 🔔 פונקציית אלרט חלופית ונקייה
+function showCustomAlert(text) {
+    document.getElementById("custom-alert-text").innerHTML = text.replace(/\n/g, "<br>");
+    document.getElementById("custom-alert-modal").classList.add("active");
+}
+
+/* ==========================================================================
+   🔐 פונקציות חמ"ל הניהול והאדמין (מצב מנהלת)
+   ========================================================================== */
+
+function openAdminPasswordModal() {
+    document.getElementById("admin-pass-input").value = "";
+    document.getElementById("admin-password-modal").classList.add("active");
+    document.getElementById("admin-pass-input").focus();
+}
+
+function closeAdminPasswordModal() {
+    document.getElementById("admin-password-modal").classList.remove("active");
+}
+
+function submitAdminPassword() {
+    const pass = document.getElementById("admin-pass-input").value;
+    if (pass === "02062026") {
+        closeAdminPasswordModal();
+        loadAdminPanelData();
+    } else {
+        alert("סיסמת מנהל שגויה!");
+    }
+}
+
+// טעינת נתוני האדמין האקטיביים בלייב מהשטח
+function loadAdminPanelData() {
+    fetch(`${SCRIPT_URL}?action=getAdminDashboardData`)
+        .then(res => res.json())
+        .then(data => {
+            rawVotesList = data.allVotes || [];
+            currentSystemStatus = data.systemStatus || "ON";
+            
+            // עדכון כפתורי ה-Toggle של הנעילה
+            updateToggleButtonsUI();
+
+            // עדכון נתונים מספריים
+            document.getElementById("admin-total-votes").textContent = rawVotesList.length;
+            
+            // חישוב כמות שופטים פעילים ייחודיים
+            const uniqueJudges = [...new Set(rawVotesList.map(v => v.mentor))];
+            document.getElementById("admin-active-judges").textContent = uniqueJudges.length;
+
+            // בניית רשימת ההספק של המנטורים
+            renderJudgesProgressList(uniqueJudges);
+
+            switchScreen("admin-screen");
+        })
+        .catch(err => {
+            showCustomAlert("שגיאה במשיכת נתוני אדמין.");
+        });
+}
+
+function closeAdminScreen() {
+    switchScreen("login-screen");
+}
+
+// עדכון נראות כפתורי הנעילה בחמ"ל
+function updateToggleButtonsUI() {
+    document.getElementById("status-on-btn").className = "status-toggle-btn" + (currentSystemStatus === "ON" ? " active-on" : "");
+    document.getElementById("status-warn-btn").className = "status-toggle-btn" + (currentSystemStatus === "WARN" ? " active-warn" : "");
+    document.getElementById("status-off-btn").className = "status-toggle-btn" + (currentSystemStatus === "OFF" ? " active-off" : "");
+}
+
+// שינוי סטטוס מערכת ושמירתו בגוגל שייטס
+function setSystemStatus(status) {
+    currentSystemStatus = status;
+    updateToggleButtonsUI();
+    
+    fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "setSystemStatus", status: status })
+    });
+}
+
+// רינדור רשימת המנטורים וההספק שלהם
+function renderJudgesProgressList(uniqueJudges) {
+    const container = document.getElementById("admin-judges-list");
+    container.innerHTML = "";
+    
+    if (uniqueJudges.length === 0) {
+        container.innerHTML = `<p style="color:#64748b; padding:5px;">אף מנטור לא הזין קולות עדיין בשטח.</p>`;
+        return;
+    }
+
+    // ספירת קולות לכל שופט
+    let judgeCounts = {};
+    uniqueJudges.forEach(j => judgeCounts[j] = 0);
+    rawVotesList.forEach(v => { if(judgeCounts[v.mentor] !== undefined) judgeCounts[v.mentor]++; });
+
+    uniqueJudges.forEach(judge => {
+        const row = document.createElement("div");
+        row.className = "judge-row-stat";
+        row.innerHTML = `
+            <strong>👤 ${judge}</strong>
+            <span style="color:#1e305b; font-weight:bold;">דירג/ה ${judgeCounts[judge]} מיזמים</span>
+        `;
+        container.appendChild(row);
+    });
+}
+
+
+/* ==========================================================================
+   🏆 מנוע האוסקר המתמטי המלא וחוקי חסימת כפל זכיות
+   ========================================================================== */
+
+let processedProjectsSummary = []; // ישמש גם לטבלת השקיפות המלאה
+
+function calculateOscarResults() {
+    if (rawVotesList.length === 0) {
+        showCustomAlert("⚠️ לא ניתן לחשב תוצאות: לא נקלטו טפסי דירוג במערכת בשטח!");
+        return;
+    }
+
+    // שלב 1: עיבוד ראשוני וחישוב ממוצעים לכל מיזם בכל קטגוריה וכללי
+    processedProjectsSummary = projectsList.map(project => {
+        const projectVotes = rawVotesList.filter(v => String(v.projectId) === String(project.id));
+        const numJudges = projectVotes.length;
+        
+        let averages = {};
+        let sumOfAllAverages = 0;
+
+        CRITERIA_CATEGORIES.forEach(cat => {
+            if (numJudges > 0) {
+                const sum = projectVotes.reduce((acc, curr) => acc + Number(curr[cat.id] || 0), 0);
+                averages[cat.id] = sum / numJudges;
+            } else {
+                averages[cat.id] = 0;
+            }
+            sumOfAllAverages += averages[cat.id];
+        });
+
+        // ממוצע כללי משוקלל (Total Score)
+        const totalScore = CRITERIA_CATEGORIES.length > 0 ? (sumOfAllAverages / CRITERIA_CATEGORIES.length) : 0;
+
+        return {
+            id: project.id,
+            title: project.title,
+            gender: project.gender,
+            creators: project.creators,
+            numJudges: numJudges,
+            averages: averages,
+            totalScore: totalScore,
+            awardsWon: [] // רשימת הזכיות שייקלטו כאן
+        };
+    });
+
+    // שלב 2: הגדרת מערכי חסימה נפרדים לבנים ולבנות
+    let blockedBoysIds = [];
+    let blockedGirlsIds = [];
+
+    // שלב 3: מציאת "מיזם השנה - האלוף הכללי" (פתוח לחלוטין, ללא הפרדת מגדר וללא חסימות)
+    // מי שיש לו את ה-Total Score הגבוה ביותר באולם
+    let grandChampion = null;
+    let maxGrandScore = -1;
+    let grandTieList = [];
+
+    processedProjectsSummary.forEach(p => {
+        if (p.numJudges === 0) return; // לא נשפוט מי שלא דורג
+        if (p.totalScore > maxGrandScore) {
+            maxGrandScore = p.totalScore;
+            grandTieList = [p];
+        } else if (p.totalScore === maxGrandScore) {
+            grandTieList.push(p);
+        }
+    });
+
+    // פונקציית המשך ריצה לאחר הכרעת האלוף הכללי
+    if (grandTieList.length > 1) {
+        triggerManualTieBreaker("👑 אלוף האולם הכללי (מיזם השנה)", grandTieList, (chosen) => {
+            executeOscarCategoriesAllocation(chosen, blockedBoysIds, blockedGirlsIds);
+        });
+    } else {
+        grandChampion = grandTieList[0] || null;
+        executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blockedGirlsIds);
+    }
+}
+
+// שלב 4: חלוקת 21 הפרסים ב-7 הקטגוריות הקשיחות בסבב משולש
+function executeOscarCategoriesAllocation(grandChampion, blockedBoysIds, blockedGirlsIds) {
+    
+    // הצגת האלוף הכללי בלוח
+    if (grandChampion) {
+        document.getElementById("res-grand-champion").innerHTML = `
+            <strong>מיזם מספר ${grandChampion.id} – ${grandChampion.title}</strong><br>
+            <span style="font-size:0.95rem; color:#475569;">יזמים: ${grandChampion.creators} (${grandChampion.gender}) | ציון משוקלל: ${grandChampion.totalScore.toFixed(2)}</span>
+        `;
+        grandChampion.awardsWon.push("👑 מיזם השנה (אלוף כללי)");
+        
+        // החלת חוק החסימה הקשיח: האלוף הכללי נחסם אוטומטית מלקבל גביע באף קטגוריה אחרת!
+        if (grandChampion.gender === "בנות") {
+            blockedGirlsIds.push(String(grandChampion.id));
+        } else {
+            blockedBoysIds.push(String(grandChampion.id));
+        }
+    } else {
+        document.getElementById("res-grand-champion").textContent = "אין נתוני דירוג מספקים באולם.";
+    }
+
+    // מבנה שיחזיק את רשימת מקומות 1,2,3 לכל קטגוריה
+    let categoryResults = {}; 
+    CRITERIA_CATEGORIES.forEach(c => { categoryResults[c.id] = { first: null, second: null, third: null }; });
+
+    // תור משימות לביצוע סדרתי של הקטגוריות והפודיומים
+    let allocationQueue = [];
+
+    CRITERIA_CATEGORIES.forEach(cat => {
+        // עבור כל קטגוריה, מחלקים מקום ראשון, אז שני, אז שלישי
+        allocationQueue.push({ catId: cat.id, catName: cat.name, place: "first", label: "🥇 מקום ראשון" });
+        allocationQueue.push({ catId: cat.id, catName: cat.name, place: "second", label: "🥈 מקום שני" });
+        allocationQueue.push({ catId: cat.id, catName: cat.name, place: "third", label: "🥉 מקום שלישי" });
+    });
+
+    function processQueueStep(index) {
+        if (index >= allocationQueue.length) {
+            // סיום חלוקת כל הקטגוריות! מציגים את התוצאות ללייב
+            renderFinalOscarUI(categoryResults);
+            return;
+        }
+
+        const task = allocationQueue[index];
+        
+        // מציאת המועמדים לבנים ובנות שאינם חסומים
+        let eligibleBoys = processedProjectsSummary.filter(p => p.gender !== "בנות" && !blockedBoysIds.includes(String(p.id)) && p.numJudges > 0);
+        let eligibleGirls = processedProjectsSummary.filter(p => p.gender === "בנות" && !blockedGirlsIds.includes(String(p.id)) && p.numJudges > 0);
+
+        // א) מציאת המנצח/ים אצל הבנים בקטגוריה הזו
+        let maxBoyScore = -1; let boyCandidates = [];
+        eligibleBoys.forEach(p => {
+            const score = p.averages[task.catId] || 0;
+            if (score > maxBoyScore) { maxBoyScore = score; boyCandidates = [p]; }
+            else if (score === maxBoyScore) { boyCandidates.push(p); }
+        });
+
+        // ב) מציאת המנצח/ים אצל הבנות בקטגוריה הזו
+        let maxGirlScore = -1; let girlCandidates = [];
+        eligibleGirls.forEach(p => {
+            const score = p.averages[task.catId] || 0;
+            if (score > maxGirlScore) { maxGirlScore = score; girlCandidates = [p]; }
+            else if (score === maxGirlScore) { girlCandidates.push(p); }
+        });
+
+        // שוברי שוויון פנימיים אוטומטיים לפי סדר עדיפויות (ממוצע משוקלל כללי)
+        function solveTieIfAny(candidates, catId, callback) {
+            if (candidates.length <= 1) { callback(candidates[0] || null); return; }
+            
+            // בדיקת שובר שוויון 1: מי בעל ממוצע משוקלל כללי גבוה יותר?
+            let highestTotalScore = -1; let finalTieList = [];
+            candidates.forEach(c => {
+                if (c.totalScore > highestTotalScore) { highestTotalScore = c.totalScore; finalTieList = [c]; }
+                else if (c.totalScore === highestTotalScore) { finalTieList.push(c); }
+            });
+
+            if (finalTieList.length === 1) {
+                callback(finalTieList[0]);
+            } else {
+                // שובר שוויון 2 מוחלט: עצירה והקפצת חלון שבירה ידני למנהלת
+                triggerManualTieBreaker(`${task.label} בקטגוריית [${task.catName}] עבור מיזמי ${candidates[0].gender}`, finalTieList, (selectedProject) => {
+                    callback(selectedProject);
+                });
             }
         }
-        if (count > 0) mentorDropdown.innerHTML = optionsHtml; else useBackupMentors();
-    }).catch(err => useBackupMentors());
-}
 
-function useBackupMentors() {
-    let optionsHtml = '<option value="">בחר/י את שמך מהרשימה (מצב גיבוי)...</option>';
-    BACKUP_MENTORS.forEach(name => optionsHtml += `<option value="${name}">${name}</option>`);
-    mentorDropdown.innerHTML = optionsHtml;
-}
+        // פתרון לבנים
+        solveTieIfAny(boyCandidates, task.catId, (winningBoy) => {
+            // פתרון לבנות
+            solveTieIfAny(girlCandidates, task.catId, (winningGirl) => {
+                
+                // רישום התוצאה לצמד הנוכחי
+                categoryResults[task.catId][task.place] = { boy: winningBoy, girl: winningGirl };
 
-function fetchMentorVotesAndRenderLobby() {
-    const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!matches || !matches[1]) return;
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Mentors_Votes`;
-    fetch(csvUrl).then(r => r.text()).then(text => {
-        const lines = text.split(/\r?\n/);
-        currentMentorVotesRow = {}; 
-        if (lines.length < 2) { fetchAndDisplayProjects(); return; }
-        const headers = parseCSVLine(lines[0]);
-        const mIdx = headers.findIndex(h => h.toLowerCase().includes('mentor')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('mentor')) : 1;
-        const pIdx = headers.findIndex(h => h.toLowerCase().includes('project')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('project')) : 2;
-        const gIdx = headers.findIndex(h => h.toLowerCase().includes('gender')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('gender')) : 3;
-        const c1Idx = headers.findIndex(h => h.toLowerCase().includes('cat1')) !== -1 ? headers.findIndex(h => h.toLowerCase().includes('cat1')) : 4;
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            const columns = parseCSVLine(lines[i]);
-            if (columns[mIdx] && columns[mIdx].trim() === currentMentor.trim()) {
-                const projectKey = `${parseInt(columns[pIdx])}_${normalizeGender(columns[gIdx])}`;
-                currentMentorVotesRow[projectKey] = [parseInt(columns[c1Idx])||0, parseInt(columns[c1Idx+1])||0, parseInt(columns[c1Idx+2])||0, parseInt(columns[c1Idx+3])||0, parseInt(columns[c1Idx+4])||0, parseInt(columns[c1Idx+5])||0, parseInt(columns[c1Idx+6])||0];
-            }
-        }
-        fetchAndDisplayProjects();
-    });
-}
+                // החלת חוק החסימה הדרמטי: הזוכים ננעלים ונחסמים להמשך התחרות לחלוטין!
+                if (winningBoy) {
+                    blockedBoysIds.push(String(winningBoy.id));
+                    winningBoy.awardsWon.push(`${task.label} – ${task.catName}`);
+                }
+                if (winningGirl) {
+                    blockedGirlsIds.push(String(winningGirl.id));
+                    winningGirl.awardsWon.push(`${task.label} – ${task.catName}`);
+                }
 
-function fetchAndDisplayProjects() {
-    const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!matches || !matches[1]) return;
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Projects`;
-    fetch(csvUrl).then(r => r.text()).then(text => {
-        const lines = text.split(/\r?\n/);
-        boysProjectsGrid.innerHTML = ""; girlsProjectsGrid.innerHTML = ""; rawProjectsData = [];
-        const headers = parseCSVLine(lines[0]);
-        let nameIdx = headers.findIndex(h => h.toLowerCase() === 'name') !== -1 ? headers.findIndex(h => h.toLowerCase() === 'name') : 3;
-        let total = 0, voted = 0;
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            const cols = parseCSVLine(lines[i]);
-            const pNo = parseInt(cols[1]); if (!pNo) continue;
-            const pCreators = cols[nameIdx] || "יזמים לא ידועים";
-            const pGender = normalizeGender(cols[5]);
-            rawProjectsData.push({ no: pNo, title: cols[2], creators: pCreators, gender: pGender });
-            total++;
-            const currentProjectKey = `${pNo}_${pGender}`;
-            const done = currentMentorVotesRow[currentProjectKey] ? true : false; 
-            if (done) voted++;
-            const btn = document.createElement('div');
-            btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
-            btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
-            if (done) btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
-            if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
-        }
-        progressCount.innerText = `${voted}/${total}`;
-        progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
-
-        // 🌟 שינוי מהותי: כפתור סיום השיפוט מוצג תמיד ברגע שהמשתמש בפאנל הלובי! 🌟
-        finishContainer.style.display = 'block';
-    });
-}
-
-function getFeedbackText(val) {
-    if (val == 0) return "טרם דורג"; if (val <= 3) return "טעון שיפור"; if (val <= 6) return "בינוני / בסיסי"; if (val <= 8) return "טוב מאוד"; return "מצוין ויוצא דופן";
-}
-
-function renderRatingCategories() {
-    categoriesContainer.innerHTML = "";
-    const projectKey = `${currentSelectedProjectNo}_${currentSelectedProjectGender}`;
-    const savedScores = currentMentorVotesRow[projectKey] || [0, 0, 0, 0, 0, 0, 0];
-    CATEGORIES_DATA.forEach((cat, index) => {
-        const prefilledValue = savedScores[index];
-        const card = document.createElement('div');
-        card.className = "category-card-row";
-        card.innerHTML = `<div class="cat-card-title">${cat.title}</div><div class="cat-card-desc">${cat.desc}</div><div class="score-badge-wrapper"><span id="feedback-${cat.id}" class="cat-card-feedback unrated">טרם דורג</span></div><button id="lock-btn-${cat.id}" class="unlock-trigger-btn" onclick="toggleSliderLock(${cat.id})">🔒 לחץ לגרירה</button><input type="range" min="0" max="10" value="${prefilledValue}" class="full-page-slider" id="slider-${cat.id}" disabled style="pointer-events: none;"><div class="manual-controls-row"><button class="step-btn minus" onclick="stepValue(${cat.id}, -1)">−</button><input type="number" id="input-${cat.id}" class="manual-score-input" min="1" max="10" placeholder="?"><button class="step-btn plus" onclick="stepValue(${cat.id}, 1)">+</button></div>`;
-        categoriesContainer.appendChild(card);
-        const slider = card.querySelector(`#slider-${cat.id}`);
-        const input = card.querySelector(`#input-${cat.id}`);
-        slider.oninput = () => updateSync(cat.id, slider.value, 'slider');
-        slider.addEventListener('touchend', () => lockSliderBack(cat.id));
-        slider.addEventListener('mouseup', () => lockSliderBack(cat.id));
-        input.oninput = () => updateSync(cat.id, input.value, 'input');
-        if (prefilledValue > 0) updateSync(cat.id, prefilledValue, 'init');
-    });
-}
-
-window.toggleSliderLock = function(id) {
-    const s = document.getElementById(`slider-${id}`); const b = document.getElementById(`lock-btn-${id}`);
-    s.disabled = false; s.style.pointerEvents = "auto"; s.classList.add("unlocked-slider");
-    b.innerHTML = "🔸 גרוֹר כעת..."; b.classList.add("active-unlocked");
-}
-
-function lockSliderBack(id) {
-    const s = document.getElementById(`slider-${id}`); const b = document.getElementById(`lock-btn-${id}`);
-    s.disabled = true; s.style.pointerEvents = "none"; s.classList.remove("unlocked-slider");
-    b.innerHTML = "🔒 לחץ לגרירה"; b.classList.remove("active-unlocked");
-}
-
-function updateSync(id, val, source) {
-    const s = document.getElementById(`slider-${id}`); const i = document.getElementById(`input-${id}`); const f = document.getElementById(`feedback-${id}`);
-    let v = parseInt(val) || 0; if (v > 10) v = 10;
-    s.value = v; if (source !== 'input') i.value = (v === 0) ? "" : v;
-    if (v === 0) { f.innerText = "טרם דורג"; f.className = "cat-card-feedback unrated"; }
-    else { f.innerText = `${v} | ${getFeedbackText(v)}`; f.className = "cat-card-feedback rated"; if (v <= 3) f.className += " low"; else if (v <= 6) f.className += " mid"; else if (v <= 8) f.className += " high"; else f.className += " perfect"; }
-}
-
-window.stepValue = function(id, d) {
-    const s = document.getElementById(`slider-${id}`);
-    let n = (parseInt(s.value) || 0) + d; if (n > 10) n = 10; if (n < 1) n = 1;
-    updateSync(id, n, 'manual');
-}
-
-function openRatingPage(pNo, pTitle, pCreators, pGender) {
-    currentSelectedProjectNo = pNo; currentSelectedProjectGender = pGender;
-    modalProjectTitle.innerText = pTitle; modalProjectCreations.innerText = "יזמים: " + pCreators;
-    modalProjectNo.innerText = "מיזם מספר " + pNo; modalProjectGender.innerText = pGender === 'female' ? "מיזם בנות" : "מיזם בנים";
-    modalProjectGender.className = `gender-badge ${pGender}`;
-    renderRatingCategories(); showScreen(ratingScreen); ratingScreen.scrollTop = 0;
-}
-
-modalCancelBtn.onclick = () => showScreen(lobbyScreen);
-ratingBackBtn.onclick = () => showScreen(lobbyScreen);
-
-enterBtn.onclick = () => {
-    if (!mentorDropdown.value) { showAlert("אנא בחר/י שם מתוך הרשימה!"); return; }
-    currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
-    showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
-};
-
-modalSaveBtn.onclick = function() {
-    const scores = []; let sum = 0;
-    for (let i = 1; i <= 7; i++) {
-        const val = parseInt(document.getElementById(`slider-${i}`).value);
-        if (val === 0) { showAlert("חובה לדרג את כל הקטגוריות!"); return; }
-        scores.push(val); sum += val;
+                // מעבר לשלב הבא בתור המשימות
+                processQueueStep(index + 1);
+            });
+        });
     }
-    modalSaveBtn.innerText = "שומר... ⏳"; modalSaveBtn.disabled = true;
-    fetch(APPS_SCRIPT_URL, {
-        method: "POST", mode: "no-cors", cache: "no-cache",
-        body: JSON.stringify({ mentorName: currentMentor, projectNumber: currentSelectedProjectNo, gender: currentSelectedProjectGender, cat1: scores[0], cat2: scores[1], cat3: scores[2], cat4: scores[3], cat5: scores[4], cat6: scores[5], cat7: scores[6], totalScore: sum })
-    }).then(() => {
-        showAlert(`נשמר בהצלחה!`);
-        modalSaveBtn.innerText = "💾 שמור דירוג והמשך"; modalSaveBtn.disabled = false;
-        showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
+
+    // הפעלת הריצה הטורית של התור
+    processQueueStep(0);
+}
+
+// 🛑 הפעלת חלון שובר שוויון ידני צף על המסך עבור המנהלת
+function triggerManualTieBreaker(title, candidatesList, onResolvedCallback) {
+    document.getElementById("tie-breaker-text").textContent = `נמצא שוויון מתמטי מוחלט בפרס: ${title}. אנא בחרי ידנית את המיזם המנצח להמשך דירוג השרשרת:`;
+    
+    const btnContainer = document.getElementById("tie-breaker-buttons-container");
+    btnContainer.innerHTML = "";
+
+    candidatesList.forEach(p => {
+        const btn = document.createElement("button");
+        btn.className = "orange-login-btn";
+        btn.style.margin = "5px 0";
+        btn.style.background = p.gender === 'בנות' ? '#c74d80' : '#2b5c8f';
+        btn.textContent = `מיזם ${p.id} – ${p.title} (${p.creators})`;
+        
+        btn.onclick = () => {
+            document.getElementById("tie-breaker-modal").classList.remove("active");
+            onResolvedCallback(p); // החזרת המיזם הנבחר להמשך המנוע
+        };
+        btnContainer.appendChild(btn);
     });
-};
 
-finishBtn.onclick = () => {
-    thanksModal.style.display = 'flex';
-};
+    document.getElementById("tie-breaker-modal").classList.add("active");
+}
 
-scanQrBtn.onclick = () => {
-    scannerModal.style.display = 'flex';
-    html5QrcodeScanner = new Html5Qrcode("qr-reader");
-    html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-        const raw = text.trim().toUpperCase(); const num = parseInt(raw.replace(/[^\d]/g, '')); const gen = raw.startsWith('G') ? 'female' : 'male';
-        stopScanner();
-        const p = rawProjectsData.find(x => x.no === num && x.gender === gen);
-        if (p) openRatingPage(p.no, p.title, p.creators, p.gender); else openRatingPage(num, `מיזם ${num}`, "לא ידוע", gen);
+// 🖥️ רינדור ויזואלי של לוח הזכיות הסופי באדמין ובניית טבלת השקיפות המלאה
+function renderFinalOscarUI(results) {
+    const gridContainer = document.getElementById("oscar-categories-results-grid");
+    gridContainer.innerHTML = "";
+
+    CRITERIA_CATEGORIES.forEach(cat => {
+        const res = results[cat.id];
+        const card = document.createElement("div");
+        card.className = "oscar-cat-card-res";
+
+        card.innerHTML = `
+            <h4>🎬 קטגוריה: ${cat.name}</h4>
+            
+            <div class="podium-line" style="color:#4a76a8;">
+                <strong>🥇 מקום 1 (בנים):</strong> ${res.first.boy ? `מיזם ${res.first.boy.id} (${res.first.boy.title})` : 'אין'}
+            </div>
+            <div class="podium-line" style="color:#e0629b;">
+                <strong>🥇 מקום 1 (בנות):</strong> ${res.first.girl ? `מיזם ${res.first.girl.id} (${res.first.girl.title})` : 'אין'}
+            </div>
+            
+            <div class="podium-line" style="color:#4a76a8; opacity:0.85;">
+                <strong>🥈 מקום 2 (בנים):</strong> ${res.second.boy ? `מיזם ${res.second.boy.id} (${res.second.boy.title})` : 'אין'}
+            </div>
+            <div class="podium-line" style="color:#e0629b; opacity:0.85;">
+                <strong>🥈 מקום 2 (בנות):</strong> ${res.second.girl ? `מיזם ${res.second.girl.id} (${res.second.girl.title})` : 'אין'}
+            </div>
+            
+            <div class="podium-line" style="color:#4a76a8; opacity:0.75;">
+                <strong>🥉 מקום 3 (בנים):</strong> ${res.third.boy ? `מיזם ${res.third.boy.id} (${res.third.boy.title})` : 'אין'}
+            </div>
+            <div class="podium-line" style="color:#e0629b; opacity:0.75;">
+                <strong>🥉 מקום 3 (בנות):</strong> ${res.third.girl ? `מיזם ${res.third.girl.id} (${res.third.girl.title})` : 'אין'}
+            </div>
+        `;
+        gridContainer.appendChild(card);
     });
-};
 
-function stopScanner() { if (html5QrcodeScanner) html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none'); else scannerModal.style.display = 'none'; }
-scannerCloseX.onclick = stopScanner;
+    // הצגת הפאנל
+    document.getElementById("oscar-results-panel").style.display = "block";
+
+    // 🔍 בניית דאשבורד השקיפות והניתוח המלא למנהל 🔍
+    buildTransparencyDashboardTable();
+}
+
+// 🔍 מילוי נתוני טבלת השקיפות המלאה מסודרת מהציון הגבוה לנמוך
+function buildTransparencyDashboardTable() {
+    const tbody = document.getElementById("transparency-table-body");
+    tbody.innerHTML = "";
+
+    // מיון המערך מהציון המשוקלל הכללי הגבוה ביותר לנמוך ביותר
+    let sortedSummary = [...processedProjectsSummary].sort((a, b) => b.totalScore - a.totalScore);
+
+    sortedSummary.forEach(p => {
+        const row = document.createElement("tr");
+        row.className = p.gender === "בנות" ? "row-girl-trans" : "row-boy-trans";
+
+        // עיבוד סטטוס הזכייה באוסקר
+        let awardsBadgeHTML = `<span style="color:#64748b;">❌ לא זכה בפרס</span>`;
+        if (p.awardsWon && p.awardsWon.length > 0) {
+            awardsBadgeHTML = p.awardsWon.map(award => `<div class="status-badge-won">${award}</div>`).join(" ");
+        }
+
+        row.innerHTML = `
+            <td style="font-weight:900; text-align:center;">${p.id}</td>
+            <td style="font-weight:700;">${p.title} <br><span style="font-size:0.75rem; font-weight:normal; color:#64748b;">יזמים: ${p.creators}</span></td>
+            <td style="font-weight:bold; color:#1e305b; text-align:center;">${p.numJudges > 0 ? p.totalScore.toFixed(2) : '0.00'}</td>
+            <td style="text-align:center; font-weight:bold; color:#4b6584;">${p.numJudges} שופטים</td>
+            <td>${awardsBadgeHTML}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // הצגת הפאנל של הטבלה
+    document.getElementById("admin-transparency-panel").style.display = "block";
+    
+    // גלילה חלקה לראש תוצאות האוסקר בשטח
+    document.getElementById("oscar-results-panel").scrollIntoView({ behavior: "smooth" });
+}
