@@ -7,6 +7,10 @@ const lobbyScreen = document.getElementById('lobby-screen');
 const ratingScreen = document.getElementById('rating-screen'); 
 const categoriesContainer = document.getElementById('categories-container');
 
+// רכיבי פאנל ניהול אדמין החדשים
+const adminScreen = document.getElementById('admin-screen');
+const adminBackBtn = document.getElementById('admin-back-btn');
+
 const mentorDropdown = document.getElementById('mentor-dropdown');
 const enterBtn = document.getElementById('enterBtn');
 const userDisplayName = document.getElementById('user-display-name');
@@ -53,7 +57,7 @@ const CATEGORIES_DATA = [
     { id: 2, title: "🔍 הגדרת הבעיה", desc: "ביצוע מחקר מעמיק; הגדרת קהל היעד, הבנת גורמי הבעיה והבאת נתונים תומכים ומהימנים." },
     { id: 3, title: "🛠️ פיתוח מוצר ויישומנות", desc: "עד כמה הדגם ממחיש את הפתרון ועד כמה הוא ישים ומוכן ליציאה להתנסות/שוק." },
     { id: 4, title: "🤖 סיוע בחדשנות", desc: "שימוש בכלים חדשניים (AI, Code) בתהליך הפיתוח וההצגה." },
-    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיות וחשיבה מחוץ刮קופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
+    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיים וחשיבה מחוץ לקופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
     { id: 6, title: "🌍 אימפקט ותרומה", desc: "פוטנציאל השינוי שהמיזם יכול לייצר בעולם (חברתי/סביבתי/לימודי)." },
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
@@ -68,6 +72,7 @@ function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
     lobbyScreen.classList.remove('active');
     ratingScreen.classList.remove('active');
+    adminScreen.classList.remove('active'); // איפוס מסך אדמין
     targetScreen.classList.add('active');
 }
 
@@ -107,7 +112,18 @@ function loadMentorsFromServer() {
             }
         }
         if (count > 0) mentorDropdown.innerHTML = optionsHtml; else useBackupMentors();
-    }).catch(err => useBackupMentors());
+    }).catch(err => useBackupMentors())
+    .finally(() => {
+        // ⚙️ יצירת כפתור גלגל שיניים חסוי לאדמין בפינה הימנית העליונה של מסך הבית
+        if (!document.getElementById("admin-gear-btn")) {
+            const gear = document.createElement("div");
+            gear.id = "admin-gear-btn";
+            gear.innerHTML = "⚙️";
+            gear.style = "position: absolute; top: 15px; right: 15px; font-size: 1.4rem; cursor: pointer; opacity: 0.3; user-select: none; z-index: 1000;";
+            gear.onclick = () => triggerAdminPasswordPrompt();
+            loginScreen.appendChild(gear);
+        }
+    });
 }
 
 function useBackupMentors() {
@@ -170,8 +186,6 @@ function fetchAndDisplayProjects() {
         }
         progressCount.innerText = `${voted}/${total}`;
         progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
-
-        // 🌟 שינוי מהותי: כפתור סיום השיפוט מוצג תמיד ברגע שהמשתמש בפאנל הלובי! 🌟
         finishContainer.style.display = 'block';
     });
 }
@@ -278,3 +292,26 @@ scanQrBtn.onclick = () => {
 
 function stopScanner() { if (html5QrcodeScanner) html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none'); else scannerModal.style.display = 'none'; }
 scannerCloseX.onclick = stopScanner;
+
+
+/* ==========================================================================
+   🔒 מנגנון ניהול חסוי (אדמין וסיסמה) - ללא פונקציות חישוב פעילות כרגע
+   ========================================================================== */
+
+function triggerAdminPasswordPrompt() {
+    const pass = prompt("אנא הזן סיסמת מנהל:");
+    if (pass === "02062026") {
+        // הסרת מחלקת active מכל המסכים והפעלת מסך אדמין בלבד
+        loginScreen.classList.remove('active');
+        lobbyScreen.classList.remove('active');
+        ratingScreen.classList.remove('active');
+        adminScreen.classList.add('active');
+    } else if (pass !== null) {
+        showAlert("❌ סיסמה שגויה! הגישה נדחתה.");
+    }
+}
+
+// מאזין לכפתור החזרה של האדמין (מחזיר בבטחה למסך הכניסה)
+adminBackBtn.onclick = () => {
+    showScreen(loginScreen);
+};
