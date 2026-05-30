@@ -7,9 +7,14 @@ const lobbyScreen = document.getElementById('lobby-screen');
 const ratingScreen = document.getElementById('rating-screen'); 
 const categoriesContainer = document.getElementById('categories-container');
 
-// רכיבי פאנל ניהול אדמין החדשים
+// רכיבי פאנל ניהול אדמין
 const adminScreen = document.getElementById('admin-screen');
 const adminBackBtn = document.getElementById('admin-back-btn');
+const adminStatusOnBtn = document.getElementById('admin-status-on-btn');
+const adminStatusLockBtn = document.getElementById('admin-status-lock-btn');
+const adminCalcOscarBtn = document.getElementById('admin-calc-oscar-btn');
+const oscarResultsArea = document.getElementById('oscar-results-area');
+const adminVotesTableBody = document.getElementById('admin-votes-table-body');
 
 const mentorDropdown = document.getElementById('mentor-dropdown');
 const enterBtn = document.getElementById('enterBtn');
@@ -49,6 +54,7 @@ let rawProjectsData = [];
 let currentMentorVotesRow = {}; 
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
+let allVotesAdminData = []; // משתנה גלובלי לשמירת נתוני האדמין
 
 const BACKUP_MENTORS = ["רבית אביטן", "שמואל פרומן", "מיטל כהן", "אייל רוזנברג", "דוד לוי", "ניר ברקוביץ", "דפנה אשכנזי", "גלעד שמר", "אורית חדד"];
 
@@ -72,7 +78,7 @@ function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
     lobbyScreen.classList.remove('active');
     ratingScreen.classList.remove('active');
-    if (adminScreen) adminScreen.classList.remove('active'); // הגנה מפני קריסה אם האלמנט טרם נטען
+    if (adminScreen) adminScreen.classList.remove('active');
     targetScreen.classList.add('active');
 }
 
@@ -114,7 +120,6 @@ function loadMentorsFromServer() {
         if (count > 0) mentorDropdown.innerHTML = optionsHtml; else useBackupMentors();
     }).catch(err => useBackupMentors())
     .finally(() => {
-        // ⚙️ יצירת כפתור גלגל שיניים חסוי לאדמין בפינה הימנית העליונה של מסך הבית
         if (!document.getElementById("admin-gear-btn")) {
             const gear = document.createElement("div");
             gear.id = "admin-gear-btn";
@@ -158,6 +163,20 @@ function fetchMentorVotesAndRenderLobby() {
 }
 
 function fetchAndDisplayProjects() {
+    // מנגנון הגנה - בדיקה אם המערכת ננעלה על ידי האדמין
+    fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
+        .then(res => res.json())
+        .then(sys => {
+            if (sys.status === "LOCK") {
+                showAlert("🔒 מערכת השיפוט נעולה כרגע על ידי הנהלת הכנס. לא ניתן להזין או לעדכן דירוגים.");
+                showScreen(loginScreen);
+                return;
+            }
+            renderLobbyGridData();
+        }).catch(() => renderLobbyGridData());
+}
+
+function renderLobbyGridData() {
     const matches = GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!matches || !matches[1]) return;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${matches[1]}/gviz/tq?tqx=out:csv&sheet=Projects`;
@@ -181,7 +200,7 @@ function fetchAndDisplayProjects() {
             const btn = document.createElement('div');
             btn.className = `project-grid-button ${done ? 'color-green' : ''}`;
             btn.innerHTML = `<div class="proj-number">${pNo}</div><div class="proj-title">${cols[2]}</div><div class="proj-status-label">${done ? '✓ דורג' : 'טרם דורג'}</div>`;
-            if (done) btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
+            btn.onclick = () => openRatingPage(pNo, cols[2], pCreators, pGender);
             if (pGender === 'female') girlsProjectsGrid.appendChild(btn); else boysProjectsGrid.appendChild(btn);
         }
         progressCount.innerText = `${voted}/${total}`;
@@ -241,11 +260,21 @@ window.stepValue = function(id, d) {
 }
 
 function openRatingPage(pNo, pTitle, pCreators, pGender) {
-    currentSelectedProjectNo = pNo; currentSelectedProjectGender = pGender;
-    modalProjectTitle.innerText = pTitle; modalProjectCreations.innerText = "יזמים: " + pCreators;
-    modalProjectNo.innerText = "מיזם מספר " + pNo; modalProjectGender.innerText = pGender === 'female' ? "מיזם בנות" : "מיזם בנים";
-    modalProjectGender.className = `gender-badge ${pGender}`;
-    renderRatingCategories(); showScreen(ratingScreen); ratingScreen.scrollTop = 0;
+    // הגנת נעילה במעבר למסך שיפוט
+    fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
+        .then(res => res.json())
+        .then(sys => {
+            if (sys.status === "LOCK") {
+                showAlert("🔒 המערכת ננעלה על ידי האדמין. לא ניתן לדרג כעת.");
+                showScreen(loginScreen);
+                return;
+            }
+            currentSelectedProjectNo = pNo; currentSelectedProjectGender = pGender;
+            modalProjectTitle.innerText = pTitle; modalProjectCreations.innerText = "יזמים: " + pCreators;
+            modalProjectNo.innerText = "מיזם מספר " + pNo; modalProjectGender.innerText = pGender === 'female' ? "מיזם בנות" : "מיזם בנים";
+            modalProjectGender.className = `gender-badge ${pGender}`;
+            renderRatingCategories(); showScreen(ratingScreen); ratingScreen.scrollTop = 0;
+        });
 }
 
 modalCancelBtn.onclick = () => showScreen(lobbyScreen);
@@ -295,7 +324,7 @@ scannerCloseX.onclick = stopScanner;
 
 
 /* ==========================================================================
-   🔒 מנגנון ניהול חסוי (אדמין וסיסמה)
+   🔒 מנגנון ניהול חסוי ואוסקר חכם (אדמין וסיסמה)
    ========================================================================== */
 
 function triggerAdminPasswordPrompt() {
@@ -305,6 +334,7 @@ function triggerAdminPasswordPrompt() {
         lobbyScreen.classList.remove('active');
         ratingScreen.classList.remove('active');
         if (adminScreen) adminScreen.classList.add('active');
+        fetchAdminDashboardData();
     } else if (pass !== null) {
         showAlert("❌ סיסמה שגויה! הגישה נדחתה.");
     }
@@ -313,5 +343,121 @@ function triggerAdminPasswordPrompt() {
 if (adminBackBtn) {
     adminBackBtn.onclick = () => {
         showScreen(loginScreen);
+    };
+}
+
+// 🚥 מאזיני סטטוס ON/OFF
+if (adminStatusOnBtn && adminStatusLockBtn) {
+    adminStatusOnBtn.onclick = () => setSystemStatusOnServer("ON");
+    adminStatusLockBtn.onclick = () => setSystemStatusOnServer("LOCK");
+}
+
+function setSystemStatusOnServer(statusState) {
+    const btnText = statusState === "ON" ? "פתיחה..." : "נעילה...";
+    showAlert(`מבצע ${btnText} אנא המתן ⏳`);
+    fetch(APPS_SCRIPT_URL, {
+        method: "POST", mode: "no-cors", cache: "no-cache",
+        body: JSON.stringify({ action: "toggleSystemStatus", status: statusState })
+    }).then(() => {
+        setTimeout(() => {
+            customAlertModal.style.display = 'none';
+            showAlert(statusState === "ON" ? "🟢 המערכת נפתחה לדירוג מנטורים!" : "🔴 המערכת ננעלה בבטחה!");
+        }, 800);
+    });
+}
+
+// 📊 טעינת נתוני אדמין וטבלת שקיפות גולמית
+function fetchAdminDashboardData() {
+    if (!adminVotesTableBody) return;
+    adminVotesTableBody.innerHTML = `<tr><td colspan="4" style="padding:15px; text-align:center; color:#64748b;">טוען נתונים מהשרת... ⏳</td></tr>`;
+    if (oscarResultsArea) oscarResultsArea.style.display = 'none';
+    
+    fetch(`${APPS_SCRIPT_URL}?action=getAdminVotesData`)
+        .then(res => res.json())
+        .then(votes => {
+            allVotesAdminData = votes || [];
+            if (allVotesAdminData.length === 0) {
+                adminVotesTableBody.innerHTML = `<tr><td colspan="4" style="padding:15px; text-align:center; color:#64748b;">טרם נקלטו הצבעות במערכת.</td></tr>`;
+                return;
+            }
+            
+            // רינדור טבלת השקיפות הגולמית
+            let html = "";
+            allVotesAdminData.forEach(v => {
+                const gLabel = v.gender === "female" ? "🚺 בנות" : "🚹 בנים";
+                html += `<tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding:10px; font-weight:bold; color:#1e293b;">${v.mentor}</td>
+                    <td style="padding:10px; color:#475569;">מיזם ${v.projectId}</td>
+                    <td style="padding:10px; color:#64748b;">${gLabel}</td>
+                    <td style="padding:10px; text-align:center; font-weight:800; color:#0f172a;">${v.totalScore} נק'</td>
+                </tr>`;
+            });
+            adminVotesTableBody.innerHTML = html;
+        }).catch(() => {
+            adminVotesTableBody.innerHTML = `<tr><td colspan="4" style="padding:15px; text-align:center; color:#ef4444;">שגיאה בטעינת נתונים גולמיים.</td></tr>`;
+        });
+}
+
+// 🏆 מנוע האוסקר המשוקלל והחכם (מניעת כפל זכיות מוחלטת)
+if (adminCalcOscarBtn) {
+    adminCalcOscarBtn.onclick = () => {
+        if (!allVotesAdminData || allVotesAdminData.length === 0) {
+            showAlert("אין מספיק נתונים לחישוב אוסקר כרגע.");
+            return;
+        }
+        
+        // 1. קיבוץ הצבעות וחישוב ממוצעים לכל מיזם
+        const projectSummary = {};
+        allVotesAdminData.forEach(v => {
+            const key = `${v.projectId}_${v.gender}`;
+            if (!projectSummary[key]) {
+                projectSummary[key] = { id: v.projectId, gender: v.gender, sum: 0, count: 0 };
+            }
+            projectSummary[key].sum += v.totalScore;
+            projectSummary[key].count += 1;
+        });
+        
+        const calculatedArr = Object.values(projectSummary).map(p => ({
+            id: p.id,
+            gender: p.gender,
+            avg: p.sum / p.count
+        }));
+        
+        // 2. פיצול לבנים ובנות ומיון מהגבוה לנמוך
+        const boysRanked = calculatedArr.filter(p => p.gender !== 'female').sort((a,b) => b.avg - a.avg);
+        const girlsRanked = calculatedArr.filter(p => p.gender === 'female').sort((a,b) => b.avg - a.avg);
+        
+        // 3. חלוקת המקומות (מניעת כפל זכיות אוטומטית לפי סדר המיקום)
+        const boysPlaces = { gold: boysRanked[0] || null, silver: boysRanked[1] || null, bronze: boysRanked[2] || null };
+        const girlsPlaces = { gold: girlsRanked[0] || null, silver: girlsRanked[1] || null, bronze: girlsRanked[2] || null };
+        
+        // 4. רינדור חזותי מפואר של התוצאות
+        let resHTML = `<h3 style="font-size:1.15rem; color:#1e3a8a; border-bottom:2px solid #fbbf24; padding-bottom:4px; margin-bottom:5px;">🏆 תוצאות האוסקר הסופיות:</h3>`;
+        
+        const makeCard = (title, icon, data) => {
+            if (!data) return `<div style="padding:8px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; color:#94a3b8;">${icon} ${title}: אין מידע</div>`;
+            return `<div style="padding:12px; background:white; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 5px rgba(0,0,0,0.02); margin-bottom: 8px;">
+                <div style="font-weight:800; font-size:1rem; color:#0f172a;">${icon} ${title}</div>
+                <div style="font-size:0.95rem; color:#2563eb; font-weight:bold; margin-top:2px;">מיזם מספר ${data.id}</div>
+                <div style="font-size:0.8rem; color:#64748b;">ציון משוקלל סופי: ${data.avg.toFixed(2)} נק'</div>
+            </div>`;
+        };
+        
+        resHTML += `<div style="font-weight:bold; margin-top:5px; margin-bottom:5px; color:#1d4ed8;">🚹 קטגוריית בנים:</div>`;
+        resHTML += makeCard("מקום ראשון (זהב)", "🥇", boysPlaces.gold);
+        resHTML += makeCard("מקום שני (כסף)", "🥈", boysPlaces.silver);
+        resHTML += makeCard("מקום שלישי (ארד)", "🥉", boysPlaces.bronze);
+        
+        resHTML += `<div style="font-weight:bold; margin-top:15px; margin-bottom:5px; color:#be185d;">🚺 קטגוריית בנות:</div>`;
+        resHTML += makeCard("מקום ראשון (זהב)", "🥇", girlsPlaces.gold);
+        resHTML += makeCard("מקום שני (כסף)", "🥈", girlsPlaces.silver);
+        resHTML += makeCard("מקום שלישי (ארד)", "🥉", girlsPlaces.bronze);
+        
+        if (oscarResultsArea) {
+            oscarResultsArea.innerHTML = resHTML;
+            oscarResultsArea.style.display = 'block';
+        }
+        
+        showAlert("✨ התוצאות חושבו ומניעת כפל הזכיות הופעלה בהצלחה!");
     };
 }
