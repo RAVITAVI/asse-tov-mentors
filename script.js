@@ -57,7 +57,7 @@ const CATEGORIES_DATA = [
     { id: 2, title: "🔍 הגדרת הבעיה", desc: "ביצוע מחקר מעמיק; הגדרת קהל היעד, הבנת גורמי הבעיה והבאת נתונים תומכים ומהימנים." },
     { id: 3, title: "🛠️ פיתוח מוצר ויישומנות", desc: "עד כמה הדגם ממחיש את הפתרון ועד כמה הוא ישים ומוכן ליציאה להתנסות/שוק." },
     { id: 4, title: "🤖 סיוע בחדשנות", desc: "שימוש בכלים חדשניים (AI, Code) בתהליך הפיתוח וההצגה." },
-    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיים וחשיבה מחוץ לקופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
+    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיות וחשיבה מחוץ לקופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
     { id: 6, title: "🌍 אימפקט ותרומה", desc: "פוטנציאל השינוי שהמיזם יכול לייצר בעולם (חברתי/סביבתי/לימודי)." },
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
@@ -72,7 +72,7 @@ function showScreen(targetScreen) {
     loginScreen.classList.remove('active');
     lobbyScreen.classList.remove('active');
     ratingScreen.classList.remove('active');
-    adminScreen.classList.remove('active'); // איפוס מסך אדמין
+    if (adminScreen) adminScreen.classList.remove('active'); // הגנה מפני קריסה אם האלמנט טרם נטען
     targetScreen.classList.add('active');
 }
 
@@ -295,23 +295,23 @@ scannerCloseX.onclick = stopScanner;
 
 
 /* ==========================================================================
-   🔒 מנגנון ניהול חסוי (אדמין וסיסמה) - ללא פונקציות חישוב פעילות כרגע
+   🔒 מנגנון ניהול חסוי (אדמין וסיסמה)
    ========================================================================== */
 
 function triggerAdminPasswordPrompt() {
     const pass = prompt("אנא הזן סיסמת מנהל:");
     if (pass === "02062026") {
-        // הסרת מחלקת active מכל המסכים והפעלת מסך אדמין בלבד
         loginScreen.classList.remove('active');
         lobbyScreen.classList.remove('active');
         ratingScreen.classList.remove('active');
-        adminScreen.classList.add('active');
+        if (adminScreen) adminScreen.classList.add('active');
     } else if (pass !== null) {
         showAlert("❌ סיסמה שגויה! הגישה נדחתה.");
     }
 }
 
-// מאזין לכפתור החזרה של האדמין (מחזיר בבטחה למסך הכניסה)
-adminBackBtn.onclick = () => {
-    showScreen(loginScreen);
-};
+if (adminBackBtn) {
+    adminBackBtn.onclick = () => {
+        showScreen(loginScreen);
+    };
+}
