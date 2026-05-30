@@ -12,9 +12,11 @@ const adminScreen = document.getElementById('admin-screen');
 const adminBackBtn = document.getElementById('admin-back-btn');
 const adminStatusOnBtn = document.getElementById('admin-status-on-btn');
 const adminStatusLockBtn = document.getElementById('admin-status-lock-btn');
+const adminCurrentStatusBadge = document.getElementById('admin-current-status-badge');
 const adminCalcOscarBtn = document.getElementById('admin-calc-oscar-btn');
 const oscarResultsArea = document.getElementById('oscar-results-area');
 const adminVotesTableBody = document.getElementById('admin-votes-table-body');
+const lobbyLockWarning = document.getElementById('lobby-lock-warning');
 
 const mentorDropdown = document.getElementById('mentor-dropdown');
 const enterBtn = document.getElementById('enterBtn');
@@ -54,7 +56,7 @@ let rawProjectsData = [];
 let currentMentorVotesRow = {}; 
 let currentSelectedProjectNo = null;
 let currentSelectedProjectGender = "";
-let allVotesAdminData = []; // משתנה גלובלי לשמירת נתוני האדמין
+let allVotesAdminData = []; 
 
 const BACKUP_MENTORS = ["רבית אביטן", "שמואל פרומן", "מיטל כהן", "אייל רוזנברג", "דוד לוי", "ניר ברקוביץ", "דפנה אשכנזי", "גלעד שמר", "אורית חדד"];
 
@@ -163,14 +165,14 @@ function fetchMentorVotesAndRenderLobby() {
 }
 
 function fetchAndDisplayProjects() {
-    // מנגנון הגנה - בדיקה אם המערכת ננעלה על ידי האדמין
+    // משיכת מצב המערכת בזמן אמת כדי לדעת אם להציג למנטור אזהרה בלובי
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
             if (sys.status === "LOCK") {
-                showAlert("🔒 מערכת השיפוט נעולה כרגע על ידי הנהלת הכנס. לא ניתן להזין או לעדכן דירוגים.");
-                showScreen(loginScreen);
-                return;
+                if (lobbyLockWarning) lobbyLockWarning.style.display = "block";
+            } else {
+                if (lobbyLockWarning) lobbyLockWarning.style.display = "none";
             }
             renderLobbyGridData();
         }).catch(() => renderLobbyGridData());
@@ -260,12 +262,13 @@ window.stepValue = function(id, d) {
 }
 
 function openRatingPage(pNo, pTitle, pCreators, pGender) {
-    // הגנת נעילה במעבר למסך שיפוט
+    // הגנת חסימה קשיחה בלחיצה על כרטיסיית מיזם חדש
     fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
         .then(res => res.json())
         .then(sys => {
             if (sys.status === "LOCK") {
-                showAlert("🔒 המערכת ננעלה על ידי האדמין. לא ניתן לדרג כעת.");
+                showAlert("🔒 מערכת השיפוט ננעלה סופית על ידי הנהלת הכנס. לא ניתן לפתוח מיזמים חדשים לדירוג.");
+                if (lobbyLockWarning) lobbyLockWarning.style.display = "block";
                 showScreen(loginScreen);
                 return;
             }
@@ -282,8 +285,21 @@ ratingBackBtn.onclick = () => showScreen(lobbyScreen);
 
 enterBtn.onclick = () => {
     if (!mentorDropdown.value) { showAlert("אנא בחר/י שם מתוך הרשימה!"); return; }
-    currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
-    showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
+    
+    // בדיקת נעילה לפני כניסה מהבית ללובי
+    fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
+        .then(res => res.json())
+        .then(sys => {
+            if (sys.status === "LOCK") {
+                showAlert("🔒 המערכת נעולה כרגע. לא ניתן להיכנס ללובי הדירוגים.");
+                return;
+            }
+            currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
+            showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
+        }).catch(() => {
+            currentMentor = mentorDropdown.value; userDisplayName.innerText = currentMentor;
+            showScreen(lobbyScreen); fetchMentorVotesAndRenderLobby();
+        });
 };
 
 modalSaveBtn.onclick = function() {
@@ -309,14 +325,23 @@ finishBtn.onclick = () => {
 };
 
 scanQrBtn.onclick = () => {
-    scannerModal.style.display = 'flex';
-    html5QrcodeScanner = new Html5Qrcode("qr-reader");
-    html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-        const raw = text.trim().toUpperCase(); const num = parseInt(raw.replace(/[^\d]/g, '')); const gen = raw.startsWith('G') ? 'female' : 'male';
-        stopScanner();
-        const p = rawProjectsData.find(x => x.no === num && x.gender === gen);
-        if (p) openRatingPage(p.no, p.title, p.creators, p.gender); else openRatingPage(num, `מיזם ${num}`, "לא ידוע", gen);
-    });
+    // בדיקת נעילה מוקדמת לפני פתיחת המצלמה לסריקה
+    fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
+        .then(res => res.json())
+        .then(sys => {
+            if (sys.status === "LOCK") {
+                showAlert("🔒 מערכת השיפוט נעולה. סורק הברקודים מושבת.");
+                return;
+            }
+            scannerModal.style.display = 'flex';
+            html5QrcodeScanner = new Html5Qrcode("qr-reader");
+            html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                const raw = text.trim().toUpperCase(); const num = parseInt(raw.replace(/[^\d]/g, '')); const gen = raw.startsWith('G') ? 'female' : 'male';
+                stopScanner();
+                const p = rawProjectsData.find(x => x.no === num && x.gender === gen);
+                if (p) openRatingPage(p.no, p.title, p.creators, p.gender); else openRatingPage(num, `מיזם ${num}`, "לא ידוע", gen);
+            });
+        });
 };
 
 function stopScanner() { if (html5QrcodeScanner) html5QrcodeScanner.stop().then(() => scannerModal.style.display = 'none'); else scannerModal.style.display = 'none'; }
@@ -334,22 +359,50 @@ function triggerAdminPasswordPrompt() {
         lobbyScreen.classList.remove('active');
         ratingScreen.classList.remove('active');
         if (adminScreen) adminScreen.classList.add('active');
+        
+        // משיכת הסטטוס הנוכחי מיד עם הכניסה כדי לעדכן את הכפתורים והפנס
+        updateAdminStatusVisuals();
         fetchAdminDashboardData();
     } else if (pass !== null) {
         showAlert("❌ סיסמה שגויה! הגישה נדחתה.");
     }
 }
 
-if (adminBackBtn) {
-    adminBackBtn.onclick = () => {
-        showScreen(loginScreen);
-    };
-}
+adminBackBtn.onclick = () => {
+    showScreen(loginScreen);
+};
 
-// 🚥 מאזיני סטטוס ON/OFF
+// 🚥 מאזיני סטטוס ON/OFF באדמין
 if (adminStatusOnBtn && adminStatusLockBtn) {
     adminStatusOnBtn.onclick = () => setSystemStatusOnServer("ON");
     adminStatusLockBtn.onclick = () => setSystemStatusOnServer("LOCK");
+}
+
+// פונקציה שמבררת מה הסטטוס כרגע בשרת ומדליקה את הכפתור הנכון
+function updateAdminStatusVisuals() {
+    if (!adminCurrentStatusBadge) return;
+    
+    fetch(`${APPS_SCRIPT_URL}?action=getSystemStatus`)
+        .then(res => res.json())
+        .then(sys => {
+            if (sys.status === "LOCK") {
+                adminCurrentStatusBadge.innerHTML = "🔴 נעול";
+                adminCurrentStatusBadge.style.background = "#fef2f2";
+                adminCurrentStatusBadge.style.color = "#ef4444";
+                
+                adminStatusLockBtn.style.opacity = "1";
+                adminStatusOnBtn.style.opacity = "0.4";
+            } else {
+                adminCurrentStatusBadge.innerHTML = "🟢 פעיל";
+                adminCurrentStatusBadge.style.background = "#f0fdf4";
+                adminCurrentStatusBadge.style.color = "#10b981";
+                
+                adminStatusOnBtn.style.opacity = "1";
+                adminStatusLockBtn.style.opacity = "0.4";
+            }
+        }).catch(() => {
+            adminCurrentStatusBadge.innerHTML = "שגיאה בחיבור";
+        });
 }
 
 function setSystemStatusOnServer(statusState) {
@@ -361,7 +414,9 @@ function setSystemStatusOnServer(statusState) {
     }).then(() => {
         setTimeout(() => {
             customAlertModal.style.display = 'none';
-            showAlert(statusState === "ON" ? "🟢 המערכת נפתחה לדירוג מנטורים!" : "🔴 המערכת ננעלה בבטחה!");
+            // עדכון חזותי מיידי של הפנסים והלחצנים לאחר השינוי
+            updateAdminStatusVisuals();
+            showAlert(statusState === "ON" ? "🟢 המערכת נפתחה לדירוג מנטורים!" : "🔴 המערכת ננעלה בבטחה ופס התרעה הופעל בשטח!");
         }, 800);
     });
 }
@@ -381,7 +436,6 @@ function fetchAdminDashboardData() {
                 return;
             }
             
-            // רינדור טבלת השקיפות הגולמית
             let html = "";
             allVotesAdminData.forEach(v => {
                 const gLabel = v.gender === "female" ? "🚺 בנות" : "🚹 בנים";
@@ -398,7 +452,7 @@ function fetchAdminDashboardData() {
         });
 }
 
-// 🏆 מנוע האוסקר המשוקלל והחכם (מניעת כפל זכיות מוחלטת)
+// 🏆 מנוע האוסקר המשוקלל והחכם
 if (adminCalcOscarBtn) {
     adminCalcOscarBtn.onclick = () => {
         if (!allVotesAdminData || allVotesAdminData.length === 0) {
@@ -406,7 +460,6 @@ if (adminCalcOscarBtn) {
             return;
         }
         
-        // 1. קיבוץ הצבעות וחישוב ממוצעים לכל מיזם
         const projectSummary = {};
         allVotesAdminData.forEach(v => {
             const key = `${v.projectId}_${v.gender}`;
@@ -423,15 +476,12 @@ if (adminCalcOscarBtn) {
             avg: p.sum / p.count
         }));
         
-        // 2. פיצול לבנים ובנות ומיון מהגבוה לנמוך
         const boysRanked = calculatedArr.filter(p => p.gender !== 'female').sort((a,b) => b.avg - a.avg);
         const girlsRanked = calculatedArr.filter(p => p.gender === 'female').sort((a,b) => b.avg - a.avg);
         
-        // 3. חלוקת המקומות (מניעת כפל זכיות אוטומטית לפי סדר המיקום)
         const boysPlaces = { gold: boysRanked[0] || null, silver: boysRanked[1] || null, bronze: boysRanked[2] || null };
         const girlsPlaces = { gold: girlsRanked[0] || null, silver: girlsRanked[1] || null, bronze: girlsRanked[2] || null };
         
-        // 4. רינדור חזותי מפואר של התוצאות
         let resHTML = `<h3 style="font-size:1.15rem; color:#1e3a8a; border-bottom:2px solid #fbbf24; padding-bottom:4px; margin-bottom:5px;">🏆 תוצאות האוסקר הסופיות:</h3>`;
         
         const makeCard = (title, icon, data) => {
