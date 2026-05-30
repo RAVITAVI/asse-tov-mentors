@@ -16,7 +16,7 @@ const boysProjectsGrid = document.getElementById('boys-projects-grid');
 const girlsProjectsGrid = document.getElementById('girls-projects-grid');
 const scanQrBtn = document.getElementById('scan-qr-btn');
 
-// כפתור ומודאל סיום
+// רכיבי סיום
 const finishContainer = document.getElementById('finish-container');
 const finishBtn = document.getElementById('finish-judging-btn');
 const thanksModal = document.getElementById('thanks-modal');
@@ -53,7 +53,7 @@ const CATEGORIES_DATA = [
     { id: 2, title: "🔍 הגדרת הבעיה", desc: "ביצוע מחקר מעמיק; הגדרת קהל היעד, הבנת גורמי הבעיה והבאת נתונים תומכים ומהימנים." },
     { id: 3, title: "🛠️ פיתוח מוצר ויישומנות", desc: "עד כמה הדגם ממחיש את הפתרון ועד כמה הוא ישים ומוכן ליציאה להתנסות/שוק." },
     { id: 4, title: "🤖 סיוע בחדשנות", desc: "שימוש בכלים חדשניים (AI, Code) בתהליך הפיתוח וההצגה." },
-    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיות וחשיבה מחוץ לקופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
+    { id: 5, title: "💡 חדשנות ומקוריות", desc: "יצירתיות וחשיבה מחוץ刮קופסה ביחס למיזמים ואו מוצרים קיימים בשוק." },
     { id: 6, title: "🌍 אימפקט ותרומה", desc: "פוטנציאל השינוי שהמיזם יכול לייצר בעולם (חברתי/סביבתי/לימודי)." },
     { id: 7, title: "📊 פרזנטציה / חוויה", desc: "יכולת שכנוע ושיווק, מבנה הפיץ' ונראות הדוכן/פוסטר." }
 ];
@@ -171,12 +171,8 @@ function fetchAndDisplayProjects() {
         progressCount.innerText = `${voted}/${total}`;
         progressBarFill.style.width = `${total > 0 ? (voted / total) * 100 : 0}%`;
 
-        // 🌟 בדיקת מצב סיום חגיגי 🌟
-        if (total > 0 && voted === total) {
-            finishContainer.style.display = 'block';
-        } else {
-            finishContainer.style.display = 'none';
-        }
+        // 🌟 שינוי מהותי: כפתור סיום השיפוט מוצג תמיד ברגע שהמשתמש בפאנל הלובי! 🌟
+        finishContainer.style.display = 'block';
     });
 }
 
@@ -265,7 +261,6 @@ modalSaveBtn.onclick = function() {
     });
 };
 
-// כפתור הסיום - פתיחת מודאל התודה
 finishBtn.onclick = () => {
     thanksModal.style.display = 'flex';
 };
