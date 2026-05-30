@@ -115,3 +115,38 @@ html, body {
 /* 🌟 כרטיסיית תודה 🌟 */
 .thanks-card { text-align: center; padding: 40px 30px; border: 3px solid #ffd700; }
 .thanks-icon { font-size: 4rem; margin-bottom: 20px; }
+
+/* ⚠️ עיצוב משודרג ומודגש לפס התרעת הנעילה בלובי */
+#lobby-lock-warning {
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 100%) !important;
+    color: #713f12 !important;
+    font-size: 1.1rem !important;
+    font-weight: 900 !important;
+    border-bottom: 4px solid #a16207 !important;
+    box-shadow: 0 4px 15px rgba(250, 204, 21, 0.25);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    padding: 14px 20px !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+/* דחיפת תוכן הלובי מעט למטה כשהפס מופעל כדי שלא יסתיר את שם השופט */
+#lobby-screen:has(#lobby-lock-warning[style*="display: block"]) .lobby-header {
+    top: 62px !important;
+}
+#lobby-screen:has(#lobby-lock-warning[style*="display: block"]) .lobby-content-wrapper {
+    padding-top: 155px !important;
+}
+
+/* אפקט פעימה חזק כדי למשוך את עין המנטור */
+@keyframes warningPulse {
+    0% { opacity: 0.95; transform: scale(1); }
+    50% { opacity: 1; background: linear-gradient(135deg, #fef08a 0%, #eab308 100%); }
+    100% { opacity: 0.95; transform: scale(1); }
+}
+#lobby-lock-warning {
+    animation: warningPulse 1.5s infinite ease-in-out;
+}
